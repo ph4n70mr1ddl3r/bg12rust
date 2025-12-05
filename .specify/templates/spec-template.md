@@ -18,6 +18,9 @@
   - Tested independently
   - Deployed independently
   - Demonstrated to users independently
+
+  For user-facing stories, capture happy/empty/loading/error states, accessibility expectations, and any
+  performance targets that must hold for the journey.
 -->
 
 ### User Story 1 - [Brief Title] (Priority: P1)
@@ -95,6 +98,12 @@
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
 - **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
 
+### Non-Functional Requirements
+
+- **NFR-001**: Experience MUST align with the design system and meet WCAG 2.1 AA (focus, keyboard, contrast, aria labels).
+- **NFR-002**: Feature MUST meet performance budget: [define metric, e.g., "backend p95 <200ms for primary path" or "UI interactions <100ms"] with planned measurement.
+- **NFR-003**: Observability MUST cover new flows (logs/metrics/traces) to detect regressions and support rollbacks.
+
 ### Key Entities *(include if feature involves data)*
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
@@ -111,5 +120,6 @@
 
 - **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
 - **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-003**: [Experience quality metric, e.g., "90% of users successfully complete primary task on first attempt", "All flows meet WCAG 2.1 AA checks"]
+- **SC-004**: [Performance/efficiency metric, e.g., "p95 latency <200ms for primary flow", "UI renders key interaction in <100ms"]
+- **SC-005**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]

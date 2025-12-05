@@ -3,7 +3,7 @@
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
 **Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/speckit.plan` command. Refer to the project command docs (if provided) for the execution workflow.
 
 ## Summary
 
@@ -31,7 +31,10 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Code Quality & Maintainability**: Lint/format tools identified; planned changes are scoped for deep review; API/docs updates listed.
+- **Testing Discipline & Coverage**: Unit, integration/contract, and E2E coverage described; failing test exists for any bug fix; 85%+ coverage target for touched areas.
+- **User Experience Consistency**: Design tokens/components named; UX acceptance covers happy/empty/loading/error states with accessibility plan (WCAG 2.1 AA); visual evidence approach defined.
+- **Performance & Efficiency**: Performance budgets stated (use defaults if unspecified) with measurement/observability plan and regression guardrails.
 
 ## Project Structure
 
