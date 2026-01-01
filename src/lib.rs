@@ -21,7 +21,6 @@ type Ciphertext = (CurveAffine, CurveAffine);
 const GENERATOR: CurveAffine = <Curve as SWCurveConfig>::GENERATOR;
 
 // Deterministic PRNG Seeds
-const OPEN_CARD_PRNG_SEED: &[u8] = b"CARDS-V1";
 const PEDERSON_H_PRNG_SEED: &[u8] = b"PEDERSON-H-V1";
 const PEDERSON_VECTOR_G_PRNG_SEED: &[u8] = b"PEDERSON-VECTOR-G-V1";
 
@@ -148,7 +147,7 @@ pub struct SecretKey(Scalar);
 /// # Examples
 ///
 /// ```
-/// use ziffle::Shuffle;
+/// use bg12rust::Shuffle;
 /// # let mut rng = ark_std::test_rng();
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
@@ -181,7 +180,7 @@ pub struct OwnershipProof {
 }
 
 impl OwnershipProof {
-    const DLOG_DST: &[u8] = b"ziffle/DLOG/v1";
+    const DLOG_DST: &[u8] = b"bg12rust/DLOG/v1";
 
     fn challenge(pk: &PublicKey, a: &CurveAffine, ctx: &[u8]) -> Scalar {
         let [e] = Transcript::init(ctx)
@@ -216,7 +215,7 @@ impl OwnershipProof {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::Shuffle;
+    /// use bg12rust::Shuffle;
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -247,7 +246,7 @@ impl OwnershipProof {
 /// # Examples
 ///
 /// ```
-/// use ziffle::{Shuffle, AggregatePublicKey};
+/// use bg12rust::{Shuffle, AggregatePublicKey};
 /// # let mut rng = ark_std::test_rng();
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
@@ -277,7 +276,7 @@ impl AggregatePublicKey {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -307,7 +306,7 @@ pub struct RevealTokenProof {
 }
 
 impl RevealTokenProof {
-    const DLEQ_DST: &[u8] = b"ziffle/DLEQ/v1";
+    const DLEQ_DST: &[u8] = b"bg12rust/DLEQ/v1";
 
     fn challenge(
         pk: PublicKey,
@@ -400,7 +399,7 @@ pub struct RevealToken(CurveAffine);
 /// # Examples
 ///
 /// ```
-/// use ziffle::{Shuffle, AggregatePublicKey, AggregateRevealToken};
+/// use bg12rust::{Shuffle, AggregatePublicKey, AggregateRevealToken};
 /// # let mut rng = ark_std::test_rng();
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
@@ -467,7 +466,7 @@ impl MaskedCard {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -519,7 +518,7 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -596,7 +595,7 @@ struct VerifyMultiExpArgInputs<'a, const N: usize> {
 }
 
 impl<const N: usize> MultiExpArg<N> {
-    const X_DST: &[u8] = b"ziffle/BG12MultiExpArgX/v1";
+    const X_DST: &[u8] = b"bg12rust/BG12MultiExpArgX/v1";
 
     fn challenge_x(
         ts: Transcript,
@@ -765,7 +764,7 @@ struct VerifySvpArgInputs<'a, const N: usize> {
 }
 
 impl<const N: usize> SingleValueProductArg<N> {
-    const X_DST: &[u8] = b"ziffle/BG12ProductArgX/v1";
+    const X_DST: &[u8] = b"bg12rust/BG12ProductArgX/v1";
 
     fn challenge_x(
         ts: Transcript,
@@ -960,8 +959,8 @@ struct ShuffleProofInputs<'a, const N: usize> {
 // 𝒞 = `prev`
 // 𝒞' = `next`
 impl<const N: usize> ShuffleProof<N> {
-    const X_DST: &[u8] = b"ziffle/BG12X/v1";
-    const YZ_DST: &[u8] = b"ziffle/BG12YZ/v1";
+    const X_DST: &[u8] = b"bg12rust/BG12X/v1";
+    const YZ_DST: &[u8] = b"bg12rust/BG12YZ/v1";
 
     fn challenge_x(
         apk: AggregatePublicKey,
@@ -1096,8 +1095,7 @@ impl<const N: usize> ShuffleProof<N> {
 /// Build a deterministic "open" deck of `N` plaintext cards using a PRNG seeded with a SHA256 hash.
 /// Each card is `s_i · G` where `s_i` is derived deterministically.
 fn open_deck<const N: usize>() -> [CurveAffine; N] {
-    let mut drng = StdRng::from_seed(Sha256::digest(OPEN_CARD_PRNG_SEED).into());
-    array::from_fn(|_| (GENERATOR * Scalar::rand(&mut drng)).into_affine())
+    array::from_fn(|i| (GENERATOR * Scalar::from(u64::try_from(i).unwrap())).into_affine())
 }
 
 /// applies the differential update
@@ -1165,8 +1163,8 @@ fn shuffle_remask_prove<const N: usize, R: Rng>(
 /// # Examples
 ///
 /// ```
-/// use ziffle::Shuffle;
-/// # use ziffle::AggregatePublicKey;
+/// use bg12rust::Shuffle;
+/// # use bg12rust::AggregatePublicKey;
 /// # let mut rng = ark_std::test_rng();
 ///
 /// // Create a 52-card deck
@@ -1229,7 +1227,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::Shuffle;
+    /// use bg12rust::Shuffle;
     /// # let mut rng = ark_std::test_rng();
     ///
     /// let shuffle = Shuffle::<52>::default();
@@ -1273,7 +1271,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     ///
     /// let shuffle = Shuffle::<10>::default();
@@ -1325,7 +1323,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -1371,7 +1369,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -1419,7 +1417,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey};
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
@@ -1469,7 +1467,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Examples
     ///
     /// ```
-    /// use ziffle::{Shuffle, AggregatePublicKey, AggregateRevealToken};
+    /// use bg12rust::{Shuffle, AggregatePublicKey, AggregateRevealToken};
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
