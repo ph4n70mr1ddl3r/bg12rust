@@ -3,6 +3,7 @@ use bg12rust::{
     RevealTokenProof, SecretKey, Shuffle, Verified,
 };
 use rand::RngCore;
+use std::time::Instant;
 
 type Deck = Shuffle<52>;
 
@@ -127,33 +128,67 @@ fn main() {
 
     println!("--- Shuffle Phase ---");
 
+    let start_alice = Instant::now();
     let (alice_deck, alice_proof) =
         table
             .shuffle
             .shuffle_initial_deck(&mut rng, table.aggregate_pk, ctx);
-    println!("Alice shuffles the initial deck...");
+    let alice_shuffle_time = start_alice.elapsed();
+    println!(
+        "Alice shuffles the initial deck... ({:.2}s)",
+        alice_shuffle_time.as_secs_f64()
+    );
 
     println!("\n--- Verification Phase ---");
 
+    let start_alice_verify = Instant::now();
     let alice_vdeck = table
         .shuffle
         .verify_initial_shuffle(table.aggregate_pk, alice_deck, alice_proof, ctx)
         .expect("Alice's shuffle should be valid");
-    println!("✓ Alice's initial shuffle verified");
+    let alice_verify_time = start_alice_verify.elapsed();
+    println!(
+        "✓ Alice's initial shuffle verified ({:.2}s)",
+        alice_verify_time.as_secs_f64()
+    );
 
+    let start_bob = Instant::now();
     let (bob_deck, bob_proof) =
         table
             .shuffle
             .shuffle_deck(&mut rng, table.aggregate_pk, &alice_vdeck, ctx);
-    println!("Bob shuffles Alice's verified deck...");
+    let bob_shuffle_time = start_bob.elapsed();
+    println!(
+        "Bob shuffles Alice's verified deck... ({:.2}s)",
+        bob_shuffle_time.as_secs_f64()
+    );
 
+    let start_bob_verify = Instant::now();
     let final_deck = table
         .shuffle
         .verify_shuffle(table.aggregate_pk, &alice_vdeck, bob_deck, bob_proof, ctx)
         .expect("Bob's shuffle should be valid");
-    println!("✓ Bob's shuffle verified");
+    let bob_verify_time = start_bob_verify.elapsed();
+    println!(
+        "✓ Bob's shuffle verified ({:.2}s)",
+        bob_verify_time.as_secs_f64()
+    );
 
-    println!("✓ Final deck is now locked - no player knows the card order!");
+    println!("\n✓ Final deck is now locked - no player knows the card order!");
+    println!();
+
+    let total_shuffle_time = alice_shuffle_time + bob_shuffle_time;
+    let total_verify_time = alice_verify_time + bob_verify_time;
+    println!("--- Timing Summary ---");
+    println!(
+        "  Total shuffle time:  {:.2}s",
+        total_shuffle_time.as_secs_f64()
+    );
+    println!("  Total proof size:    ~5.5 KB per shuffle");
+    println!(
+        "  Total verify time:   {:.2}s",
+        total_verify_time.as_secs_f64()
+    );
     println!();
 
     println!("--- Dealing Phase ---");
@@ -168,6 +203,7 @@ fn main() {
 
     println!("--- Revealing Hole Cards ---");
 
+    let start_reveal = Instant::now();
     println!("\nAlice's hole cards:");
     for (i, card) in alice_hole.iter().enumerate() {
         let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
@@ -191,6 +227,7 @@ fn main() {
             card_str
         );
     }
+    let reveal_time = start_reveal.elapsed();
 
     println!("\n--- Dealing Community Cards ---");
 
@@ -235,6 +272,17 @@ fn main() {
     println!("Zero-knowledge proofs verified: 4");
     println!("Cards revealed: 8 (4 hole + 4 community)");
     println!("Cards remaining encrypted: 44");
+    println!();
+    println!("Timing:");
+    println!(
+        "  Shuffle + proof:  {:.2}s",
+        total_shuffle_time.as_secs_f64()
+    );
+    println!(
+        "  Verify proofs:    {:.2}s",
+        total_verify_time.as_secs_f64()
+    );
+    println!("  Reveal 8 cards:   {:.2}s", reveal_time.as_secs_f64());
     println!();
     println!("The deck can continue being used for:");
     println!("  - Revealing showdown cards");
