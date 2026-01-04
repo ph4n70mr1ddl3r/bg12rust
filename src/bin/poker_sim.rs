@@ -129,14 +129,24 @@ fn main() {
     println!("--- Deck Preparation ---");
 
     let start_encrypt = Instant::now();
-    let initial_encrypted = table
-        .shuffle
-        .encrypt_initial_deck(&mut rng, table.aggregate_pk);
+    let initial_encrypted = table.shuffle.encrypt_initial_deck(table.aggregate_pk, ctx);
     let encrypt_time = start_encrypt.elapsed();
     println!(
         "Encrypt unshuffled deck with joint key... ({:.2}s)",
         encrypt_time.as_secs_f64()
     );
+
+    let start_verify_enc = Instant::now();
+    let encryption_valid =
+        table
+            .shuffle
+            .verify_initial_encryption(table.aggregate_pk, &initial_encrypted, ctx);
+    let verify_enc_time = start_verify_enc.elapsed();
+    println!(
+        "✓ Encryption verified ({:.2}s)",
+        verify_enc_time.as_secs_f64()
+    );
+    assert!(encryption_valid, "Initial encryption should be valid");
 
     println!("\n--- Shuffle Phase ---");
 
@@ -208,6 +218,10 @@ fn main() {
         total_verify_time.as_secs_f64()
     );
     println!("  Encrypt initial:     {:.2}s", encrypt_time.as_secs_f64());
+    println!(
+        "  Verify encryption:   {:.2}s",
+        verify_enc_time.as_secs_f64()
+    );
     println!();
 
     println!("--- Dealing Phase ---");
@@ -289,7 +303,7 @@ fn main() {
     println!("\n=== Game Summary ===");
     println!("Steps:");
     println!("  1. Create unshuffled deck (52 visible cards)");
-    println!("  2. Encrypt with joint key (Alice + Bob)");
+    println!("  2. Encrypt with joint key (deterministic, verifiable)");
     println!("  3. Alice shuffles + re-encrypts");
     println!("  4. Bob shuffles + re-encrypts");
     println!("  5. Cards revealed with cooperation");

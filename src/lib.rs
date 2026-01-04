@@ -23,6 +23,7 @@ const GENERATOR: CurveAffine = <Curve as SWCurveConfig>::GENERATOR;
 // Deterministic PRNG Seeds
 const PEDERSON_H_PRNG_SEED: &[u8] = b"PEDERSON-H-V1";
 const PEDERSON_VECTOR_G_PRNG_SEED: &[u8] = b"PEDERSON-VECTOR-G-V1";
+const INITIAL_DECK_ENC_SEED: &[u8] = b"BG12-INITIAL-DECK-ENC-V1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct PedersonCommitment(CurveAffine);
@@ -1212,10 +1213,14 @@ impl<const N: usize> Shuffle<N> {
     const _N_GREATER_THAN_1: () = assert!(N > 1);
 
     #[must_use]
-    pub fn encrypt_initial_deck<R: Rng>(&self, rng: &mut R, apk: AggregatePublicKey) -> MaskedDeck<N> {
+    pub fn encrypt_initial_deck(&self, apk: AggregatePublicKey, ctx: &[u8]) -> MaskedDeck<N> {
         let mut deck: [Ciphertext; N] = array::from_fn(|_| (CurveAffine::identity(), CurveAffine::identity()));
+
+        let seed_input = [INITIAL_DECK_ENC_SEED, ctx].concat();
+        let mut drng = StdRng::from_seed(Sha256::digest(&seed_input).into());
+
         (0..N).for_each(|i| {
-            let r = Scalar::rand(rng);
+            let r = Scalar::rand(&mut drng);
             let plaintext = self.open_deck[i];
             deck[i] = (
                 (GENERATOR * r).into_affine(),
@@ -1223,6 +1228,30 @@ impl<const N: usize> Shuffle<N> {
             );
         });
         MaskedDeck(deck)
+    }
+
+    #[must_use]
+    pub fn verify_initial_encryption(
+        &self,
+        apk: AggregatePublicKey,
+        encrypted: &MaskedDeck<N>,
+        ctx: &[u8],
+    ) -> bool {
+        let seed_input = [INITIAL_DECK_ENC_SEED, ctx].concat();
+        let mut drng = StdRng::from_seed(Sha256::digest(&seed_input).into());
+
+        for i in 0..N {
+            let r = Scalar::rand(&mut drng);
+            let plaintext = self.open_deck[i];
+            let expected_c1 = (GENERATOR * r).into_affine();
+            let expected_c2 = (plaintext + (apk.0.into_group() * r)).into_affine();
+
+            let actual = encrypted.0[i];
+            if actual != (expected_c1, expected_c2) {
+                return false;
+            }
+        }
+        true
     }
 
     fn initial_deck(&self) -> [Ciphertext; N] {
