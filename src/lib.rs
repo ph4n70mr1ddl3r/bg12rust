@@ -160,6 +160,12 @@ pub struct SecretKey(Scalar);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Verified<T>(T);
 
+impl<T> Verified<T> {
+    pub fn new(value: T) -> Self {
+        Self(value)
+    }
+}
+
 /// Public key for a player, derived from their secret key.
 ///
 /// Public keys are shared with all players and used to encrypt cards.
@@ -1205,6 +1211,20 @@ impl<const N: usize> Default for Shuffle<N> {
 impl<const N: usize> Shuffle<N> {
     const _N_GREATER_THAN_1: () = assert!(N > 1);
 
+    #[must_use]
+    pub fn encrypt_initial_deck<R: Rng>(&self, rng: &mut R, apk: AggregatePublicKey) -> MaskedDeck<N> {
+        let mut deck: [Ciphertext; N] = array::from_fn(|_| (CurveAffine::identity(), CurveAffine::identity()));
+        (0..N).for_each(|i| {
+            let r = Scalar::rand(rng);
+            let plaintext = self.open_deck[i];
+            deck[i] = (
+                (GENERATOR * r).into_affine(),
+                (plaintext + (apk.0.into_group() * r)).into_affine(),
+            );
+        });
+        MaskedDeck(deck)
+    }
+
     fn initial_deck(&self) -> [Ciphertext; N] {
         array::from_fn(|i| (CurveAffine::identity(), self.open_deck[i]))
     }
@@ -1348,6 +1368,17 @@ impl<const N: usize> Shuffle<N> {
         ctx: &[u8],
     ) -> (MaskedDeck<N>, ShuffleProof<N>) {
         shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0.0, ctx)
+    }
+
+    #[must_use]
+    pub fn shuffle_encrypted_deck<R: Rng>(
+        &self,
+        rng: &mut R,
+        apk: AggregatePublicKey,
+        prev: &MaskedDeck<N>,
+        ctx: &[u8],
+    ) -> (MaskedDeck<N>, ShuffleProof<N>) {
+        shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0, ctx)
     }
 
     /// Verifies the initial shuffle proof and returns a verified deck.

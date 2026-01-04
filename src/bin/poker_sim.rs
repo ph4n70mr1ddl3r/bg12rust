@@ -126,16 +126,28 @@ fn main() {
     println!("Context: {}", String::from_utf8_lossy(ctx));
     println!();
 
-    println!("--- Shuffle Phase ---");
+    println!("--- Deck Preparation ---");
+
+    let start_encrypt = Instant::now();
+    let initial_encrypted = table
+        .shuffle
+        .encrypt_initial_deck(&mut rng, table.aggregate_pk);
+    let encrypt_time = start_encrypt.elapsed();
+    println!(
+        "Encrypt unshuffled deck with joint key... ({:.2}s)",
+        encrypt_time.as_secs_f64()
+    );
+
+    println!("\n--- Shuffle Phase ---");
 
     let start_alice = Instant::now();
     let (alice_deck, alice_proof) =
         table
             .shuffle
-            .shuffle_initial_deck(&mut rng, table.aggregate_pk, ctx);
+            .shuffle_encrypted_deck(&mut rng, table.aggregate_pk, &initial_encrypted, ctx);
     let alice_shuffle_time = start_alice.elapsed();
     println!(
-        "Alice shuffles the initial deck... ({:.2}s)",
+        "Alice shuffles the encrypted deck... ({:.2}s)",
         alice_shuffle_time.as_secs_f64()
     );
 
@@ -144,7 +156,13 @@ fn main() {
     let start_alice_verify = Instant::now();
     let alice_vdeck = table
         .shuffle
-        .verify_initial_shuffle(table.aggregate_pk, alice_deck, alice_proof, ctx)
+        .verify_shuffle(
+            table.aggregate_pk,
+            &Verified::new(initial_encrypted),
+            alice_deck,
+            alice_proof,
+            ctx,
+        )
         .expect("Alice's shuffle should be valid");
     let alice_verify_time = start_alice_verify.elapsed();
     println!(
@@ -189,6 +207,7 @@ fn main() {
         "  Total verify time:   {:.2}s",
         total_verify_time.as_secs_f64()
     );
+    println!("  Encrypt initial:     {:.2}s", encrypt_time.as_secs_f64());
     println!();
 
     println!("--- Dealing Phase ---");
@@ -268,6 +287,12 @@ fn main() {
     }
 
     println!("\n=== Game Summary ===");
+    println!("Steps:");
+    println!("  1. Create unshuffled deck (52 visible cards)");
+    println!("  2. Encrypt with joint key (Alice + Bob)");
+    println!("  3. Alice shuffles + re-encrypts");
+    println!("  4. Bob shuffles + re-encrypts");
+    println!("  5. Cards revealed with cooperation");
     println!("Total shuffles: 2 (Alice then Bob)");
     println!("Zero-knowledge proofs verified: 4");
     println!("Cards revealed: 8 (4 hole + 4 community)");
