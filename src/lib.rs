@@ -2,13 +2,13 @@
 
 use core::array;
 
-use ark_ec::{AffineRepr, CurveConfig, CurveGroup, short_weierstrass::SWCurveConfig};
+use ark_ec::{short_weierstrass::SWCurveConfig, AffineRepr, CurveConfig, CurveGroup};
 use ark_ff::{
-    Field, UniformRand, Zero,
     field_hashers::{DefaultFieldHasher, HashToField},
+    Field, UniformRand, Zero,
 };
 use ark_serialize::CanonicalSerialize;
-use ark_std::rand::{RngCore as Rng, SeedableRng, rngs::StdRng, seq::SliceRandom};
+use ark_std::rand::{rngs::StdRng, seq::SliceRandom, RngCore as Rng, SeedableRng};
 use sha2::{Digest, Sha256};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
@@ -296,7 +296,7 @@ impl AggregatePublicKey {
     /// ```
     #[must_use]
     pub fn new(pks: &[Verified<PublicKey>]) -> Self {
-        let apk: CurveProj = pks.iter().map(|pk| pk.0.0).sum();
+        let apk: CurveProj = pks.iter().map(|pk| pk.0 .0).sum();
         Self(apk.into_affine())
     }
 }
@@ -440,7 +440,7 @@ impl AggregateRevealToken {
     /// * `pks` - Slice of verified reveal tokens from all players
     #[must_use]
     pub fn new(pks: &[Verified<RevealToken>]) -> Self {
-        let art: CurveProj = pks.iter().map(|t| t.0.0.into_group()).sum();
+        let art: CurveProj = pks.iter().map(|t| t.0 .0.into_group()).sum();
         Self(art.into_affine())
     }
 }
@@ -497,7 +497,7 @@ impl MaskedCard {
         ctx: &[u8],
     ) -> (RevealToken, RevealTokenProof) {
         let SecretKey(sk) = sk;
-        let c1 = self.0.0.into_group();
+        let c1 = self.0 .0.into_group();
         let share = (c1 * sk).into_affine();
         let proof = RevealTokenProof::new(rng, *sk, pk, share, c1, ctx);
         (RevealToken(share), proof)
@@ -543,7 +543,7 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// assert!(vdeck.get(10).is_none());
     /// ```
     pub fn get(&self, idx: usize) -> Option<MaskedCard> {
-        self.0.0.get(idx).copied().map(MaskedCard)
+        self.0 .0.get(idx).copied().map(MaskedCard)
     }
 }
 
@@ -1214,7 +1214,8 @@ impl<const N: usize> Shuffle<N> {
 
     #[must_use]
     pub fn encrypt_initial_deck(&self, apk: AggregatePublicKey, ctx: &[u8]) -> MaskedDeck<N> {
-        let mut deck: [Ciphertext; N] = array::from_fn(|_| (CurveAffine::identity(), CurveAffine::identity()));
+        let mut deck: [Ciphertext; N] =
+            array::from_fn(|_| (CurveAffine::identity(), CurveAffine::identity()));
 
         let seed_input = [INITIAL_DECK_ENC_SEED, ctx].concat();
         let mut drng = StdRng::from_seed(Sha256::digest(&seed_input).into());
@@ -1396,7 +1397,7 @@ impl<const N: usize> Shuffle<N> {
         prev: &Verified<MaskedDeck<N>>,
         ctx: &[u8],
     ) -> (MaskedDeck<N>, ShuffleProof<N>) {
-        shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0.0, ctx)
+        shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0 .0, ctx)
     }
 
     #[must_use]
@@ -1505,7 +1506,7 @@ impl<const N: usize> Shuffle<N> {
         proof: ShuffleProof<N>,
         ctx: &[u8],
     ) -> Option<Verified<MaskedDeck<N>>> {
-        proof.verify(&self.commit_key, apk, &prev.0.0, &next.0, ctx)
+        proof.verify(&self.commit_key, apk, &prev.0 .0, &next.0, ctx)
     }
 
     /// Reveals a card using an aggregate reveal token from all players.
@@ -1718,4 +1719,392 @@ impl_valid_and_deser!(RevealTokenProof { t_g, t_c1, z });
 impl_valid_and_deser!(OwnershipProof { a, z });
 
 #[cfg(test)]
-mod test;
+mod tests {
+    use super::*;
+    use ark_std::test_rng;
+
+    const TEST_CTX: &[u8] = b"test_game";
+
+    #[test]
+    fn test_keygen_and_ownership_proof() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+
+        let verified_pk = proof.verify(pk, TEST_CTX).expect("proof should be valid");
+        assert_eq!(verified_pk.0, pk);
+
+        let bad_proof = OwnershipProof {
+            a: pk.0,
+            z: Scalar::ONE,
+        };
+        assert!(bad_proof.verify(pk, TEST_CTX).is_none());
+    }
+
+    #[test]
+    fn test_aggregate_public_key() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let expected_apk = (pk1.0.into_group() + pk2.0.into_group()).into_affine();
+        assert_eq!(apk.0, expected_apk);
+    }
+
+    #[test]
+    fn test_open_deck_deterministic() {
+        let shuffle1 = Shuffle::<52>::default();
+        let shuffle2 = Shuffle::<52>::default();
+
+        for i in 0..52 {
+            assert_eq!(shuffle1.open_deck[i], shuffle2.open_deck[i]);
+        }
+    }
+
+    #[test]
+    fn test_initial_encryption_and_verification() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let verified = shuffle.verify_initial_encryption(apk, &encrypted, TEST_CTX);
+        assert!(verified, "encryption should be verifiable");
+    }
+
+    #[test]
+    fn test_initial_encryption_deterministic() {
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted1 = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+        let encrypted2 = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        for i in 0..52 {
+            assert_eq!(encrypted1.0[i], encrypted2.0[i]);
+        }
+    }
+
+    #[test]
+    fn test_single_shuffle_and_verify() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+
+        let verified =
+            shuffle.verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX);
+        assert!(verified.is_some(), "shuffle should be verifiable");
+    }
+
+    #[test]
+    fn test_multiple_shuffles() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled1, proof1) =
+            shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let verified1 = shuffle
+            .verify_shuffle(apk, &Verified::new(encrypted), shuffled1, proof1, TEST_CTX)
+            .unwrap();
+
+        let (shuffled2, proof2) =
+            shuffle.shuffle_encrypted_deck(&mut rng, apk, &verified1.0, TEST_CTX);
+        let verified2 = shuffle
+            .verify_shuffle(
+                apk,
+                &Verified::new(verified1.0),
+                shuffled2,
+                proof2,
+                TEST_CTX,
+            )
+            .unwrap();
+
+        let (shuffled3, proof3) =
+            shuffle.shuffle_encrypted_deck(&mut rng, apk, &verified2.0, TEST_CTX);
+        let verified3 = shuffle.verify_shuffle(
+            apk,
+            &Verified::new(verified2.0),
+            shuffled3,
+            proof3,
+            TEST_CTX,
+        );
+
+        assert!(verified3.is_some(), "3 shuffles should all verify");
+    }
+
+    #[test]
+    fn test_shuffle_proof_rejects_invalid() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (mut shuffled, proof) =
+            shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+
+        shuffled.0[0].1 = CurveAffine::identity();
+
+        let verified =
+            shuffle.verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX);
+        assert!(
+            verified.is_none(),
+            "modified shuffle should fail verification"
+        );
+    }
+
+    #[test]
+    fn test_card_reveal_requires_all_players() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let verified = shuffle
+            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .unwrap();
+
+        let card = verified.get(0).unwrap();
+
+        let (token1, proof1) = card.reveal_token(&mut rng, &sk1, pk1, TEST_CTX);
+        let verified1 = proof1.verify(vpk1, token1, card, TEST_CTX).unwrap();
+
+        let art = AggregateRevealToken::new(&[verified1]);
+
+        let revealed = shuffle.reveal_card(art, card);
+        assert!(
+            revealed.is_none(),
+            "incomplete aggregate should not decrypt"
+        );
+
+        let (token2, proof2) = card.reveal_token(&mut rng, &sk2, pk2, TEST_CTX);
+        let verified2 = proof2.verify(vpk2, token2, card, TEST_CTX).unwrap();
+
+        let art = AggregateRevealToken::new(&[verified1, verified2]);
+        let revealed = shuffle.reveal_card(art, card);
+        assert!(revealed.is_some(), "complete aggregate should decrypt");
+    }
+
+    #[test]
+    fn test_reveal_proof_validity() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let verified = shuffle
+            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .unwrap();
+
+        let card = verified.get(0).unwrap();
+
+        let (token, _) = card.reveal_token(&mut rng, &sk1, pk1, TEST_CTX);
+
+        let bad_proof = RevealTokenProof {
+            t_g: GENERATOR,
+            t_c1: GENERATOR,
+            z: Scalar::ONE,
+        };
+
+        assert!(bad_proof.verify(vpk1, token, card, TEST_CTX).is_none());
+    }
+
+    #[test]
+    fn test_different_contexts_produce_different_encryptions() {
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let ctx1 = b"game_1";
+        let ctx2 = b"game_2";
+
+        let encrypted1 = shuffle.encrypt_initial_deck(apk, ctx1);
+        let encrypted2 = shuffle.encrypt_initial_deck(apk, ctx2);
+
+        let all_different: bool = (0..52)
+            .map(|i| encrypted1.0[i] != encrypted2.0[i])
+            .any(|b| b);
+        assert!(
+            all_different,
+            "different contexts should produce different encryptions"
+        );
+    }
+
+    #[test]
+    fn test_all_cards_present_after_shuffle() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let verified = shuffle
+            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .unwrap();
+
+        let mut revealed_count = 0;
+        let mut revealed_indices = Vec::new();
+        for i in 0..52 {
+            let card = verified.get(i).unwrap();
+            let (token1, proof1) = card.reveal_token(&mut rng, &sk1, pk1, TEST_CTX);
+            let verified1 = proof1.verify(vpk1, token1, card, TEST_CTX).unwrap();
+
+            let (token2, proof2) = card.reveal_token(&mut rng, &sk2, pk2, TEST_CTX);
+            let verified2 = proof2.verify(vpk2, token2, card, TEST_CTX).unwrap();
+
+            let art = AggregateRevealToken::new(&[verified1, verified2]);
+            if let Some(idx) = shuffle.reveal_card(art, card) {
+                assert!(idx < 52, "card index should be valid");
+                revealed_indices.push(idx);
+                revealed_count += 1;
+            }
+        }
+        assert_eq!(revealed_count, 52, "all 52 cards should be revealable");
+
+        let mut unique_indices = revealed_indices.clone();
+        unique_indices.sort();
+        unique_indices.dedup();
+        assert_eq!(
+            unique_indices.len(),
+            52,
+            "all card indices should be unique"
+        );
+    }
+
+    #[test]
+    fn test_small_deck_shuffle() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<5>::default();
+
+        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
+
+        let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
+
+        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+
+        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let verified = shuffle
+            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .unwrap();
+
+        assert!(verified.get(4).is_some());
+    }
+
+    #[test]
+    fn test_ownership_proof_same_context() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+        let _verified = proof.verify(pk, TEST_CTX).unwrap();
+
+        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+
+        let wrong_context = b"wrong_game";
+        assert!(proof2.verify(pk2, wrong_context).is_none());
+    }
+
+    #[test]
+    fn test_verified_type_safety() {
+        let mut rng = test_rng();
+        let shuffle = Shuffle::<52>::default();
+
+        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+        let verified_pk: Verified<PublicKey> = proof.verify(pk, TEST_CTX).expect("should be valid");
+
+        let (_, pk2, _) = shuffle.keygen(&mut rng, TEST_CTX);
+
+        assert_ne!(verified_pk.0, pk2, "verified key should match original");
+    }
+
+    fn rng() -> ark_std::rand::rngs::StdRng {
+        ark_std::rand::rngs::StdRng::from_entropy()
+    }
+}
