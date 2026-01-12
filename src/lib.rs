@@ -20,6 +20,65 @@ type Ciphertext = (CurveAffine, CurveAffine);
 
 const GENERATOR: CurveAffine = <Curve as SWCurveConfig>::GENERATOR;
 
+/// Custom error type for shuffle operations.
+///
+/// Provides detailed error information for failure cases in the shuffle protocol,
+/// including proof verification failures and invalid inputs.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShuffleError {
+    /// The proof verification failed, indicating invalid proof or tampering.
+    InvalidProof,
+
+    /// The reveal token proof verification failed.
+    InvalidRevealTokenProof,
+
+    /// The ownership proof verification failed.
+    InvalidOwnershipProof,
+
+    /// Index out of bounds when accessing deck cards.
+    IndexOutOfBounds { index: usize, size: usize },
+
+    /// The deck size is invalid (must be greater than 1).
+    InvalidDeckSize { size: usize },
+
+    /// Context string is empty or too short.
+    InvalidContext,
+
+    /// Decryption failed due to insufficient reveal tokens.
+    InsufficientRevealTokens { required: usize, provided: usize },
+}
+
+impl core::fmt::Display for ShuffleError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ShuffleError::InvalidProof => write!(f, "proof verification failed"),
+            ShuffleError::InvalidRevealTokenProof => {
+                write!(f, "reveal token proof verification failed")
+            }
+            ShuffleError::InvalidOwnershipProof => write!(f, "ownership proof verification failed"),
+            ShuffleError::IndexOutOfBounds { index, size } => {
+                write!(f, "index {index} out of bounds for deck size {size}")
+            }
+            ShuffleError::InvalidDeckSize { size } => {
+                write!(f, "invalid deck size {size}, must be greater than 1")
+            }
+            ShuffleError::InvalidContext => write!(f, "context string is empty or invalid"),
+            ShuffleError::InsufficientRevealTokens { required, provided } => {
+                write!(
+                    f,
+                    "insufficient reveal tokens: required {required}, provided {provided}"
+                )
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for ShuffleError {}
+
+/// Result type for shuffle operations with custom error handling.
+pub type ShuffleResult<T> = core::result::Result<T, ShuffleError>;
+
 // Deterministic PRNG Seeds
 const PEDERSON_H_PRNG_SEED: &[u8] = b"PEDERSON-H-V1";
 const PEDERSON_VECTOR_G_PRNG_SEED: &[u8] = b"PEDERSON-VECTOR-G-V1";
@@ -373,10 +432,10 @@ impl RevealTokenProof {
         let RevealToken(share) = token;
         let MaskedCard((c1, _)) = card;
 
-        // Step 1: reproducde challenge scalar
+        // Step 1: reproduce challenge scalar
         let e = Self::challenge(pk, share, c1, self.t_g, self.t_c1, ctx);
 
-        // Step 2: chec t_g == g·z + pk·e
+        // Step 2: check t_g == g·z + pk·e
         if self.t_g != ((GENERATOR * self.z) + (pk.0.into_group() * e)).into_affine() {
             return None;
         }

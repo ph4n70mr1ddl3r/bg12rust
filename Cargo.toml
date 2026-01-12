@@ -16,3 +16,6 @@ ark-ff = "0.5"
 ark-serialize = "0.5"
 sha2 = "0.10"
 zeroize = "1.7"
+
+[features]
+std = ["ark-std/std"]
