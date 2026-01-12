@@ -1074,7 +1074,7 @@ impl<const N: usize> ShuffleProof<N> {
         let xpi: [Scalar; N] = array::from_fn(|i| x.pow([usize_to_u64!(perm[i]) + 1]));
         let (c_xpi, w_xpi) = ck.vector_commit(rng, &xpi);
 
-        // Step 4: update the transcipt with the commitment to c_xpi and derive a challenge scalars y & z
+        // Step 4: update the transcript with the commitment to c_xpi and derive a challenge scalars y & z
         let (ts, y, z) = Self::challenge_yz(ts, c_xpi);
 
         // Step 5: compute the multi-exponentiation argument of knowledge
@@ -2026,15 +2026,10 @@ mod tests {
 
         let card = verified.get(0).unwrap();
 
-        let (token, _) = card.reveal_token(&mut rng, &sk1, pk1, TEST_CTX);
+        let (token, proof) = card.reveal_token(&mut rng, &sk1, pk1, TEST_CTX);
 
-        let bad_proof = RevealTokenProof {
-            t_g: GENERATOR,
-            t_c1: GENERATOR,
-            z: Scalar::ONE,
-        };
-
-        assert!(bad_proof.verify(vpk1, token, card, TEST_CTX).is_none());
+        assert!(proof.verify(vpk1, token, card, TEST_CTX).is_some());
+        assert!(proof.verify(vpk2, token, card, TEST_CTX).is_none());
     }
 
     #[test]
@@ -2165,5 +2160,54 @@ mod tests {
 
     fn rng() -> ark_std::rand::rngs::StdRng {
         ark_std::rand::rngs::StdRng::from_entropy()
+    }
+
+    #[test]
+    fn test_shuffle_error_display() {
+        assert_eq!(
+            ShuffleError::InvalidProof.to_string(),
+            "proof verification failed"
+        );
+        assert_eq!(
+            ShuffleError::InvalidRevealTokenProof.to_string(),
+            "reveal token proof verification failed"
+        );
+        assert_eq!(
+            ShuffleError::InvalidOwnershipProof.to_string(),
+            "ownership proof verification failed"
+        );
+        assert_eq!(
+            ShuffleError::IndexOutOfBounds { index: 5, size: 3 }.to_string(),
+            "index 5 out of bounds for deck size 3"
+        );
+        assert_eq!(
+            ShuffleError::InvalidDeckSize { size: 0 }.to_string(),
+            "invalid deck size 0, must be greater than 1"
+        );
+        assert_eq!(
+            ShuffleError::InvalidContext.to_string(),
+            "context string is empty or invalid"
+        );
+        assert_eq!(
+            ShuffleError::InsufficientRevealTokens {
+                required: 3,
+                provided: 1
+            }
+            .to_string(),
+            "insufficient reveal tokens: required 3, provided 1"
+        );
+    }
+
+    #[test]
+    fn test_shuffle_error_eq() {
+        assert_eq!(ShuffleError::InvalidProof, ShuffleError::InvalidProof);
+        assert_eq!(
+            ShuffleError::IndexOutOfBounds { index: 1, size: 52 },
+            ShuffleError::IndexOutOfBounds { index: 1, size: 52 }
+        );
+        assert_ne!(
+            ShuffleError::IndexOutOfBounds { index: 1, size: 52 },
+            ShuffleError::IndexOutOfBounds { index: 2, size: 52 }
+        );
     }
 }
