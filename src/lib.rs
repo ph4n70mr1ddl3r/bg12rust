@@ -1290,6 +1290,36 @@ impl<const N: usize> Shuffle<N> {
         MaskedDeck(deck)
     }
 
+    /// Verifies that a deck was correctly encrypted using the initial encryption process.
+    ///
+    /// This function checks that the encrypted deck matches what would be produced by
+    /// [`encrypt_initial_deck`](Self::encrypt_initial_deck) with the same context.
+    ///
+    /// # Arguments
+    ///
+    /// * `apk` - Aggregate public key used for encryption
+    /// * `encrypted` - The encrypted deck to verify
+    /// * `ctx` - Context string that was used during encryption
+    ///
+    /// # Returns
+    ///
+    /// `true` if the encryption is valid, `false` otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use bg12rust::{Shuffle, AggregatePublicKey};
+    /// # let mut rng = ark_std::test_rng();
+    /// # let shuffle = Shuffle::<10>::default();
+    /// # let ctx = b"game";
+    /// # let (_, pk, proof) = shuffle.keygen(&mut rng, ctx);
+    /// # let vpk = proof.verify(pk, ctx).unwrap();
+    /// # let apk = AggregatePublicKey::new(&[vpk]);
+    ///
+    /// let encrypted = shuffle.encrypt_initial_deck(apk, ctx);
+    /// let is_valid = shuffle.verify_initial_encryption(apk, &encrypted, ctx);
+    /// assert!(is_valid, "valid encryption should verify");
+    /// ```
     #[must_use]
     pub fn verify_initial_encryption(
         &self,

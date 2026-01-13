@@ -50,8 +50,16 @@ impl PokerTable {
         }
     }
 
-    fn deal_hole_cards(&self, deck: Verified<MaskedDeck<52>>, start_idx: usize) -> Vec<MaskedCard> {
-        (0..4).map(|i| deck.get(start_idx + i).unwrap()).collect()
+    fn deal_hole_cards(
+        &self,
+        deck: Verified<MaskedDeck<52>>,
+        start_idx: usize,
+    ) -> Option<Vec<MaskedCard>> {
+        let end_idx = start_idx.checked_add(4)?;
+        if end_idx > 52 {
+            return None;
+        }
+        Some((0..4).map(|i| deck.get(start_idx + i).unwrap()).collect())
     }
 
     fn deal_community_cards(
@@ -59,10 +67,16 @@ impl PokerTable {
         deck: Verified<MaskedDeck<52>>,
         start_idx: usize,
         count: usize,
-    ) -> Vec<MaskedCard> {
-        (0..count)
-            .map(|i| deck.get(start_idx + i).unwrap())
-            .collect()
+    ) -> Option<Vec<MaskedCard>> {
+        let end_idx = start_idx.checked_add(count)?;
+        if end_idx > 52 {
+            return None;
+        }
+        Some(
+            (0..count)
+                .map(|i| deck.get(start_idx + i).unwrap())
+                .collect(),
+        )
     }
 }
 
@@ -226,7 +240,9 @@ fn main() {
 
     println!("--- Dealing Phase ---");
 
-    let hole_cards = table.deal_hole_cards(final_deck, 0);
+    let hole_cards = table
+        .deal_hole_cards(final_deck, 0)
+        .expect("hole cards should be in bounds");
     let alice_hole = &hole_cards[0..2];
     let bob_hole = &hole_cards[2..4];
 
@@ -264,9 +280,15 @@ fn main() {
 
     println!("\n--- Dealing Community Cards ---");
 
-    let flop = table.deal_community_cards(final_deck, 7, 3);
-    let turn = table.deal_community_cards(final_deck, 10, 1);
-    let river = table.deal_community_cards(final_deck, 11, 1);
+    let flop = table
+        .deal_community_cards(final_deck, 7, 3)
+        .expect("flop should be in bounds");
+    let turn = table
+        .deal_community_cards(final_deck, 10, 1)
+        .expect("turn should be in bounds");
+    let river = table
+        .deal_community_cards(final_deck, 11, 1)
+        .expect("river should be in bounds");
 
     println!("Flop dealt to positions 7,8,9 (3 cards)");
     println!("Turn dealt to position 10 (1 card)");
