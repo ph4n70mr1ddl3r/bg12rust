@@ -109,6 +109,7 @@ impl<const N: usize> Default for PedersonCommitKey<N> {
 }
 
 impl<const N: usize> PedersonCommitKey<N> {
+    #[inline]
     fn commit_with_r(&self, m: Scalar, r: Scalar) -> CurveProj {
         (GENERATOR * m) + (self.h * r)
     }
@@ -121,6 +122,7 @@ impl<const N: usize> PedersonCommitKey<N> {
         )
     }
 
+    #[inline]
     fn vector_commit_with_r(&self, ms: &[Scalar; N], r: Scalar) -> CurveProj {
         (0..N).map(|i| self.gs[i] * ms[i]).sum::<CurveProj>() + (self.h * r)
     }
@@ -601,6 +603,7 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// // Out of bounds returns None
     /// assert!(vdeck.get(10).is_none());
     /// ```
+    #[inline]
     pub fn get(&self, idx: usize) -> Option<MaskedCard> {
         self.0 .0.get(idx).copied().map(MaskedCard)
     }
@@ -745,6 +748,7 @@ impl<const N: usize> MultiExpArg<N> {
     }
 
     #[must_use]
+    #[inline]
     fn verify(
         &self,
         VerifyMultiExpArgInputs {
@@ -918,6 +922,7 @@ impl<const N: usize> SingleValueProductArg<N> {
     }
 
     #[must_use]
+    #[inline]
     fn verify(
         &self,
         VerifySvpArgInputs {
@@ -1160,12 +1165,14 @@ impl<const N: usize> ShuffleProof<N> {
 
 /// Build a deterministic "open" deck of `N` plaintext cards using a PRNG seeded with a SHA256 hash.
 /// Each card is `s_i · G` where `s_i` is derived deterministically.
+#[inline]
 fn open_deck<const N: usize>() -> [CurveAffine; N] {
-    array::from_fn(|i| (GENERATOR * Scalar::from(u64::try_from(i).unwrap())).into_affine())
+    array::from_fn(|i| (GENERATOR * Scalar::new(usize_to_u64!(i).into())).into_affine())
 }
 
 /// applies the differential update
 /// (c1, c2) <- (c1 + r·G, c2 + r·pk) with fresh r.
+#[inline]
 fn remask_card<R: Rng>(
     rng: &mut R,
     AggregatePublicKey(pk): AggregatePublicKey,
