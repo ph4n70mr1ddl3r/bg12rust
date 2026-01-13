@@ -477,7 +477,7 @@ pub struct RevealToken(CurveAffine);
 /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
 /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-/// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+/// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
 /// # let card = vdeck.get(0).unwrap();
 /// # let (rt1, rt_proof1) = card.reveal_token(&mut rng, &sk1, pk1, ctx);
 /// # let (rt2, rt_proof2) = card.reveal_token(&mut rng, &sk2, pk2, ctx);
@@ -542,7 +542,7 @@ impl MaskedCard {
     /// # let vpk = proof.verify(pk, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk]);
     /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-    /// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, shuf_proof, ctx).unwrap();
+    /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, shuf_proof, ctx).unwrap();
     ///
     /// let card = vdeck.get(0).unwrap();
     /// let (token, proof) = card.reveal_token(&mut rng, &sk, pk, ctx);
@@ -594,7 +594,7 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// # let vpk = proof.verify(pk, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk]);
     /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-    /// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, shuf_proof, ctx).unwrap();
+    /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, shuf_proof, ctx).unwrap();
     ///
     /// // Access cards from the verified deck
     /// let first_card = vdeck.get(0).unwrap();
@@ -1258,7 +1258,7 @@ fn shuffle_remask_prove<const N: usize, R: Rng>(
 ///
 /// // Player 1 shuffles the initial deck
 /// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-/// let vdeck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+/// let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
 /// ```
 #[derive(Debug, Clone, Copy)]
 pub struct Shuffle<const N: usize> {
@@ -1436,7 +1436,7 @@ impl<const N: usize> Shuffle<N> {
     /// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
     ///
     /// // All players verify
-    /// let verified_deck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+    /// let verified_deck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     /// ```
     #[must_use]
     pub fn shuffle_initial_deck<R: Rng>(
@@ -1479,11 +1479,11 @@ impl<const N: usize> Shuffle<N> {
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
     /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-    /// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+    /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     ///
     /// // Player 2 shuffles the already-shuffled deck
     /// let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx);
-    /// let vdeck2 = shuffle.verify_shuffle(apk, &vdeck, deck2, proof2, ctx).unwrap();
+    /// let vdeck2 = shuffle.verify_shuffle(apk, &vdeck, &deck2, proof2, ctx).unwrap();
     /// ```
     #[must_use]
     pub fn shuffle_deck<R: Rng>(
@@ -1515,7 +1515,7 @@ impl<const N: usize> Shuffle<N> {
     /// # Arguments
     ///
     /// * `apk` - Aggregate public key from all players
-    /// * `next` - The shuffled deck to verify
+    /// * `next` - The shuffled deck to verify (can be a reference)
     /// * `proof` - Zero-knowledge shuffle proof
     /// * `ctx` - Context string used during shuffle
     ///
@@ -1538,7 +1538,7 @@ impl<const N: usize> Shuffle<N> {
     /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
     ///
     /// // Verify returns None if proof is invalid
-    /// match shuffle.verify_initial_shuffle(apk, deck, proof, ctx) {
+    /// match shuffle.verify_initial_shuffle(apk, &deck, proof, ctx) {
     ///     Some(verified_deck) => println!("Shuffle verified!"),
     ///     None => println!("Invalid shuffle proof"),
     /// }
@@ -1547,7 +1547,7 @@ impl<const N: usize> Shuffle<N> {
     pub fn verify_initial_shuffle(
         &self,
         apk: AggregatePublicKey,
-        next: MaskedDeck<N>,
+        next: &MaskedDeck<N>,
         proof: ShuffleProof<N>,
         ctx: &[u8],
     ) -> Option<Verified<MaskedDeck<N>>> {
@@ -1563,7 +1563,7 @@ impl<const N: usize> Shuffle<N> {
     ///
     /// * `apk` - Aggregate public key from all players
     /// * `prev` - Previously verified deck state
-    /// * `next` - The newly shuffled deck to verify
+    /// * `next` - The newly shuffled deck to verify (can be a reference)
     /// * `proof` - Zero-knowledge shuffle proof
     /// * `ctx` - Context string used during shuffle
     ///
@@ -1584,11 +1584,11 @@ impl<const N: usize> Shuffle<N> {
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
     /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-    /// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+    /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     /// # let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx);
     ///
     /// // Verify the second shuffle
-    /// match shuffle.verify_shuffle(apk, &vdeck, deck2, proof2, ctx) {
+    /// match shuffle.verify_shuffle(apk, &vdeck, &deck2, proof2, ctx) {
     ///     Some(verified_deck) => println!("Re-shuffle verified!"),
     ///     None => println!("Invalid shuffle proof"),
     /// }
@@ -1598,7 +1598,7 @@ impl<const N: usize> Shuffle<N> {
         &self,
         apk: AggregatePublicKey,
         prev: &Verified<MaskedDeck<N>>,
-        next: MaskedDeck<N>,
+        next: &MaskedDeck<N>,
         proof: ShuffleProof<N>,
         ctx: &[u8],
     ) -> Option<Verified<MaskedDeck<N>>> {
@@ -1634,7 +1634,7 @@ impl<const N: usize> Shuffle<N> {
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
     /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
-    /// # let vdeck = shuffle.verify_initial_shuffle(apk, deck, proof, ctx).unwrap();
+    /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     ///
     /// let card = vdeck.get(0).unwrap();
     ///
@@ -1922,7 +1922,7 @@ mod tests {
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
 
         let verified =
-            shuffle.verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX);
+            shuffle.verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX);
         assert!(verified.is_some(), "shuffle should be verifiable");
     }
 
@@ -1944,7 +1944,7 @@ mod tests {
         let (shuffled1, proof1) =
             shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified1 = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), shuffled1, proof1, TEST_CTX)
+            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled1, proof1, TEST_CTX)
             .unwrap();
 
         let (shuffled2, proof2) =
@@ -1953,7 +1953,7 @@ mod tests {
             .verify_shuffle(
                 apk,
                 &Verified::new(verified1.0),
-                shuffled2,
+                &shuffled2,
                 proof2,
                 TEST_CTX,
             )
@@ -1964,7 +1964,7 @@ mod tests {
         let verified3 = shuffle.verify_shuffle(
             apk,
             &Verified::new(verified2.0),
-            shuffled3,
+            &shuffled3,
             proof3,
             TEST_CTX,
         );
@@ -1993,7 +1993,7 @@ mod tests {
         shuffled.0[0].1 = CurveAffine::identity();
 
         let verified =
-            shuffle.verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX);
+            shuffle.verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX);
         assert!(
             verified.is_none(),
             "modified shuffle should fail verification"
@@ -2017,7 +2017,7 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2058,7 +2058,7 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2113,7 +2113,7 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let mut revealed_count = 0;
@@ -2162,7 +2162,7 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), shuffled, proof, TEST_CTX)
+            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
             .unwrap();
 
         assert!(verified.get(4).is_some());

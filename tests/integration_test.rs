@@ -30,7 +30,7 @@ fn test_full_poker_workflow() {
         .verify_shuffle(
             apk,
             &Verified::new(encrypted),
-            alice_deck,
+            &alice_deck,
             alice_proof,
             POKER_CTX,
         )
@@ -38,7 +38,7 @@ fn test_full_poker_workflow() {
 
     let (bob_deck, bob_proof) = shuffle.shuffle_deck(&mut rng, apk, &alice_vdeck, POKER_CTX);
     let final_deck = shuffle
-        .verify_shuffle(apk, &alice_vdeck, bob_deck, bob_proof, POKER_CTX)
+        .verify_shuffle(apk, &alice_vdeck, &bob_deck, bob_proof, POKER_CTX)
         .expect("Bob's shuffle should be valid");
 
     assert!(final_deck.get(51).is_some(), "should access last card");
@@ -82,7 +82,7 @@ fn test_three_player_workflow() {
     for i in 0..3 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX);
         current_deck = shuffle
-            .verify_shuffle(apk, &current_deck, new_deck, proof, POKER_CTX)
+            .verify_shuffle(apk, &current_deck, &new_deck, proof, POKER_CTX)
             .expect(&format!("shuffle {} should verify", i + 1));
     }
 
@@ -124,7 +124,7 @@ fn test_shuffle_proof_catches_tampering() {
     let result = shuffle.verify_shuffle(
         apk,
         &Verified::new(encrypted),
-        tampered_deck,
+        &tampered_deck,
         proof,
         POKER_CTX,
     );
@@ -135,7 +135,7 @@ fn test_shuffle_proof_catches_tampering() {
     let result2 = shuffle.verify_shuffle(
         apk,
         &Verified::new(encrypted),
-        encrypted,
+        &encrypted,
         tampered_proof,
         POKER_CTX,
     );
@@ -163,7 +163,7 @@ fn test_reveal_token_proof_catches_wrong_key() {
         .verify_shuffle(
             apk,
             &Verified::new(encrypted),
-            deck,
+            &deck,
             shuffle_proof,
             POKER_CTX,
         )
@@ -221,7 +221,7 @@ fn test_multiple_rounds_same_deck() {
 
     for round in 0..5 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &verified_deck, POKER_CTX);
-        let verified = shuffle.verify_shuffle(apk, &verified_deck, new_deck, proof, POKER_CTX);
+        let verified = shuffle.verify_shuffle(apk, &verified_deck, &new_deck, proof, POKER_CTX);
 
         assert!(
             verified.is_some(),

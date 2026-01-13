@@ -183,7 +183,7 @@ fn main() {
         .verify_shuffle(
             table.aggregate_pk,
             &Verified::new(initial_encrypted),
-            alice_deck,
+            &alice_deck,
             alice_proof,
             ctx,
         )
@@ -208,7 +208,7 @@ fn main() {
     let start_bob_verify = Instant::now();
     let final_deck = table
         .shuffle
-        .verify_shuffle(table.aggregate_pk, &alice_vdeck, bob_deck, bob_proof, ctx)
+        .verify_shuffle(table.aggregate_pk, &alice_vdeck, &bob_deck, bob_proof, ctx)
         .expect("Bob's shuffle should be valid");
     let bob_verify_time = start_bob_verify.elapsed();
     println!(
