@@ -29,7 +29,7 @@ fn test_full_poker_workflow() {
     let alice_vdeck = shuffle
         .verify_shuffle(
             apk,
-            &Verified::new(encrypted),
+            &Verified::new_unchecked(encrypted),
             &alice_deck,
             alice_proof,
             POKER_CTX,
@@ -78,7 +78,7 @@ fn test_three_player_workflow() {
 
     let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
 
-    let mut current_deck = Verified::new(encrypted);
+    let mut current_deck = Verified::new_unchecked(encrypted);
     for i in 0..3 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX);
         current_deck = shuffle
@@ -123,7 +123,7 @@ fn test_shuffle_proof_catches_tampering() {
 
     let result = shuffle.verify_shuffle(
         apk,
-        &Verified::new(encrypted),
+        &Verified::new_unchecked(encrypted),
         &tampered_deck,
         proof,
         POKER_CTX,
@@ -134,7 +134,7 @@ fn test_shuffle_proof_catches_tampering() {
 
     let result2 = shuffle.verify_shuffle(
         apk,
-        &Verified::new(encrypted),
+        &Verified::new_unchecked(encrypted),
         &encrypted,
         tampered_proof,
         POKER_CTX,
@@ -162,7 +162,7 @@ fn test_reveal_token_proof_catches_wrong_key() {
     let verified = shuffle
         .verify_shuffle(
             apk,
-            &Verified::new(encrypted),
+            &Verified::new_unchecked(encrypted),
             &deck,
             shuffle_proof,
             POKER_CTX,
@@ -217,7 +217,7 @@ fn test_multiple_rounds_same_deck() {
     let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
 
     let (deck, _) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
-    let mut verified_deck = Verified::new(deck);
+    let mut verified_deck = Verified::new_unchecked(deck);
 
     for round in 0..5 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &verified_deck, POKER_CTX);

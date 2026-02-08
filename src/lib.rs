@@ -153,11 +153,12 @@ impl Transcript {
     fn update_with_serialized<T: CanonicalSerialize>(h: &mut Sha256, label: &str, t: &T) {
         let mut serialize_buffer = [0u8; Self::SERIALIZE_BUFFER_SIZE];
         let serialized_size = t.compressed_size();
-        assert!(
-            serialized_size <= Self::SERIALIZE_BUFFER_SIZE,
-            "serialize buffer too small to serialize {label}: {serialized_size} < {}",
-            Self::SERIALIZE_BUFFER_SIZE
-        );
+        if serialized_size > Self::SERIALIZE_BUFFER_SIZE {
+            panic!(
+                "serialize buffer too small to serialize {label}: {serialized_size} > {}",
+                Self::SERIALIZE_BUFFER_SIZE
+            );
+        }
         t.serialize_compressed(&mut serialize_buffer[..serialized_size])
             .expect("infallible serialization");
         h.update(serialized_size.to_be_bytes());
@@ -223,7 +224,8 @@ pub struct SecretKey(Scalar);
 pub struct Verified<T>(T);
 
 impl<T> Verified<T> {
-    pub fn new(value: T) -> Self {
+    #[doc(hidden)]
+    pub fn new_unchecked(value: T) -> Self {
         Self(value)
     }
 }
@@ -1268,6 +1270,7 @@ pub struct Shuffle<const N: usize> {
 
 impl<const N: usize> Default for Shuffle<N> {
     fn default() -> Self {
+        Self::check_deck_size();
         Self {
             commit_key: PedersonCommitKey::default(),
             open_deck: open_deck(),
@@ -1276,7 +1279,9 @@ impl<const N: usize> Default for Shuffle<N> {
 }
 
 impl<const N: usize> Shuffle<N> {
-    const _N_GREATER_THAN_1: () = assert!(N > 1);
+    fn check_deck_size() {
+        assert!(N > 1, "Deck size must be greater than 1, got {N}");
+    }
 
     #[must_use]
     pub fn encrypt_initial_deck(&self, apk: AggregatePublicKey, ctx: &[u8]) -> MaskedDeck<N> {
@@ -1921,8 +1926,13 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
 
-        let verified =
-            shuffle.verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX);
+        let verified = shuffle.verify_shuffle(
+            apk,
+            &Verified::new_unchecked(encrypted),
+            &shuffled,
+            proof,
+            TEST_CTX,
+        );
         assert!(verified.is_some(), "shuffle should be verifiable");
     }
 
@@ -1944,7 +1954,13 @@ mod tests {
         let (shuffled1, proof1) =
             shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified1 = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled1, proof1, TEST_CTX)
+            .verify_shuffle(
+                apk,
+                &Verified::new_unchecked(encrypted),
+                &shuffled1,
+                proof1,
+                TEST_CTX,
+            )
             .unwrap();
 
         let (shuffled2, proof2) =
@@ -1952,7 +1968,7 @@ mod tests {
         let verified2 = shuffle
             .verify_shuffle(
                 apk,
-                &Verified::new(verified1.0),
+                &Verified::new_unchecked(verified1.0),
                 &shuffled2,
                 proof2,
                 TEST_CTX,
@@ -1963,7 +1979,7 @@ mod tests {
             shuffle.shuffle_encrypted_deck(&mut rng, apk, &verified2.0, TEST_CTX);
         let verified3 = shuffle.verify_shuffle(
             apk,
-            &Verified::new(verified2.0),
+            &Verified::new_unchecked(verified2.0),
             &shuffled3,
             proof3,
             TEST_CTX,
@@ -1992,8 +2008,13 @@ mod tests {
 
         shuffled.0[0].1 = CurveAffine::identity();
 
-        let verified =
-            shuffle.verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX);
+        let verified = shuffle.verify_shuffle(
+            apk,
+            &Verified::new_unchecked(encrypted),
+            &shuffled,
+            proof,
+            TEST_CTX,
+        );
         assert!(
             verified.is_none(),
             "modified shuffle should fail verification"
@@ -2017,7 +2038,13 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
+            .verify_shuffle(
+                apk,
+                &Verified::new_unchecked(encrypted),
+                &shuffled,
+                proof,
+                TEST_CTX,
+            )
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2058,7 +2085,13 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
+            .verify_shuffle(
+                apk,
+                &Verified::new_unchecked(encrypted),
+                &shuffled,
+                proof,
+                TEST_CTX,
+            )
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2111,7 +2144,13 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
+            .verify_shuffle(
+                apk,
+                &Verified::new_unchecked(encrypted),
+                &shuffled,
+                proof,
+                TEST_CTX,
+            )
             .unwrap();
 
         let mut revealed_count = 0;
@@ -2160,7 +2199,13 @@ mod tests {
 
         let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(apk, &Verified::new(encrypted), &shuffled, proof, TEST_CTX)
+            .verify_shuffle(
+                apk,
+                &Verified::new_unchecked(encrypted),
+                &shuffled,
+                proof,
+                TEST_CTX,
+            )
             .unwrap();
 
         assert!(verified.get(4).is_some());

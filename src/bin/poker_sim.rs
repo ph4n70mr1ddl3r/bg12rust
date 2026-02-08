@@ -182,7 +182,7 @@ fn main() {
         .shuffle
         .verify_shuffle(
             table.aggregate_pk,
-            &Verified::new(initial_encrypted),
+            &Verified::new_unchecked(initial_encrypted),
             &alice_deck,
             alice_proof,
             ctx,
