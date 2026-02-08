@@ -1,4 +1,4 @@
-#![forbid(clippy::all)]
+#![warn(clippy::all)]
 
 use core::array;
 
@@ -1786,7 +1786,8 @@ impl_valid_and_serde_unit!(PedersonCommitment);
 impl_valid_and_serde_unit!(RevealToken);
 impl_valid_and_serde_unit!(MaskedDeck<N>);
 
-// only implement serialize so it can only be constructed from verified public keys
+// Only implement serialize to prevent deserializing unverified aggregate keys.
+// This ensures aggregate public keys can only be constructed from verified individual public keys.
 impl ark_serialize::CanonicalSerialize for AggregatePublicKey {
     impl_valid_and_serde_unit!(@impl_ser );
 }

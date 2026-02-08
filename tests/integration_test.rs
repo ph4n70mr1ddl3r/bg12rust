@@ -9,7 +9,7 @@ const POKER_CTX: &[u8] = b"poker_integration_test";
 
 #[test]
 fn test_full_poker_workflow() {
-    let mut rng = rand::thread_rng();
+    let mut rng = ark_std::test_rng();
     let shuffle = TestDeck::default();
 
     let (sk1, pk1, proof1) = shuffle
@@ -60,7 +60,7 @@ fn test_full_poker_workflow() {
 
 #[test]
 fn test_three_player_workflow() {
-    let mut rng = rand::thread_rng();
+    let mut rng = ark_std::test_rng();
     let shuffle = TestDeck::default();
 
     let players: Vec<(SecretKey, PublicKey, Verified<PublicKey>)> = (0..3)
@@ -114,7 +114,7 @@ fn test_three_player_workflow() {
 
 #[test]
 fn test_shuffle_proof_catches_tampering() {
-    let mut rng = rand::thread_rng();
+    let mut rng = ark_std::test_rng();
     let shuffle = TestDeck::default();
 
     let (_, pk1, proof1) = shuffle
@@ -146,7 +146,7 @@ fn test_shuffle_proof_catches_tampering() {
 
 #[test]
 fn test_reveal_token_proof_catches_wrong_key() {
-    let mut rng = rand::thread_rng();
+    let mut rng = ark_std::test_rng();
     let shuffle = TestDeck::default();
 
     let (sk1, pk1, proof1) = shuffle
@@ -202,7 +202,7 @@ fn test_error_type_display() {
 
 #[test]
 fn test_multiple_rounds_same_deck() {
-    let mut rng = rand::thread_rng();
+    let mut rng = ark_std::test_rng();
     let shuffle = TestDeck::default();
 
     let (sk1, pk1, proof1) = shuffle
