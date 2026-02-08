@@ -1927,17 +1927,9 @@ mod tests {
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
+        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
 
-        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
-
-        let verified = shuffle.verify_shuffle(
-            apk,
-            &Verified::new_unchecked(encrypted),
-            &shuffled,
-            proof,
-            TEST_CTX,
-        );
+        let verified = shuffle.verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX);
         assert!(verified.is_some(), "shuffle should be verifiable");
     }
 
@@ -1954,41 +1946,20 @@ mod tests {
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
-
-        let (shuffled1, proof1) =
-            shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let (shuffled1, proof1) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
         let verified1 = shuffle
-            .verify_shuffle(
-                apk,
-                &Verified::new_unchecked(encrypted),
-                &shuffled1,
-                proof1,
-                TEST_CTX,
-            )
+            .verify_initial_shuffle(apk, &shuffled1, proof1, TEST_CTX)
             .unwrap();
 
         let (shuffled2, proof2) =
             shuffle.shuffle_encrypted_deck(&mut rng, apk, &verified1.0, TEST_CTX);
         let verified2 = shuffle
-            .verify_shuffle(
-                apk,
-                &Verified::new_unchecked(verified1.0),
-                &shuffled2,
-                proof2,
-                TEST_CTX,
-            )
+            .verify_shuffle(apk, &verified1, &shuffled2, proof2, TEST_CTX)
             .unwrap();
 
         let (shuffled3, proof3) =
             shuffle.shuffle_encrypted_deck(&mut rng, apk, &verified2.0, TEST_CTX);
-        let verified3 = shuffle.verify_shuffle(
-            apk,
-            &Verified::new_unchecked(verified2.0),
-            &shuffled3,
-            proof3,
-            TEST_CTX,
-        );
+        let verified3 = shuffle.verify_shuffle(apk, &verified2, &shuffled3, proof3, TEST_CTX);
 
         assert!(verified3.is_some(), "3 shuffles should all verify");
     }
@@ -2039,17 +2010,9 @@ mod tests {
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
-
-        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(
-                apk,
-                &Verified::new_unchecked(encrypted),
-                &shuffled,
-                proof,
-                TEST_CTX,
-            )
+            .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2086,17 +2049,9 @@ mod tests {
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
-
-        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(
-                apk,
-                &Verified::new_unchecked(encrypted),
-                &shuffled,
-                proof,
-                TEST_CTX,
-            )
+            .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let card = verified.get(0).unwrap();
@@ -2145,17 +2100,9 @@ mod tests {
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let encrypted = shuffle.encrypt_initial_deck(apk, TEST_CTX);
-
-        let (shuffled, proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, TEST_CTX);
+        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
         let verified = shuffle
-            .verify_shuffle(
-                apk,
-                &Verified::new_unchecked(encrypted),
-                &shuffled,
-                proof,
-                TEST_CTX,
-            )
+            .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
 
         let mut revealed_count = 0;

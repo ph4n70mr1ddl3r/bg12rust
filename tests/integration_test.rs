@@ -20,20 +20,9 @@ fn test_full_poker_workflow() {
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
-    let encryption_valid = shuffle.verify_initial_encryption(apk, &encrypted, POKER_CTX);
-    assert!(encryption_valid, "initial encryption should be valid");
-
-    let (alice_deck, alice_proof) =
-        shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
+    let (alice_deck, alice_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
     let alice_vdeck = shuffle
-        .verify_shuffle(
-            apk,
-            &Verified::new_unchecked(encrypted),
-            &alice_deck,
-            alice_proof,
-            POKER_CTX,
-        )
+        .verify_initial_shuffle(apk, &alice_deck, alice_proof, POKER_CTX)
         .expect("Alice's shuffle should be valid");
 
     let (bob_deck, bob_proof) = shuffle.shuffle_deck(&mut rng, apk, &alice_vdeck, POKER_CTX);
@@ -76,9 +65,10 @@ fn test_three_player_workflow() {
 
     let apk = AggregatePublicKey::new(&players.iter().map(|(_, _, vpk)| *vpk).collect::<Vec<_>>());
 
-    let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
-
-    let mut current_deck = Verified::new_unchecked(encrypted);
+    let (initial_deck, initial_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let mut current_deck = shuffle
+        .verify_initial_shuffle(apk, &initial_deck, initial_proof, POKER_CTX)
+        .unwrap();
     for i in 0..3 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX);
         current_deck = shuffle
@@ -116,30 +106,15 @@ fn test_shuffle_proof_catches_tampering() {
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
+    let (initial_deck, initial_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
 
-    let (tampered_deck, proof) =
-        shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
-
-    let result = shuffle.verify_shuffle(
-        apk,
-        &Verified::new_unchecked(encrypted),
-        &tampered_deck,
-        proof,
-        POKER_CTX,
-    );
+    let result = shuffle.verify_initial_shuffle(apk, &initial_deck, initial_proof, POKER_CTX);
     assert!(result.is_some(), "valid shuffle should pass");
 
-    let (_, tampered_proof) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
+    let (tampered_deck, _tampered_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
 
-    let result2 = shuffle.verify_shuffle(
-        apk,
-        &Verified::new_unchecked(encrypted),
-        &encrypted,
-        tampered_proof,
-        POKER_CTX,
-    );
-    assert!(result2.is_none(), "wrong deck should fail verification");
+    let result2 = shuffle.verify_initial_shuffle(apk, &tampered_deck, initial_proof, POKER_CTX);
+    assert!(result2.is_none(), "wrong proof should fail verification");
 }
 
 #[test]
@@ -155,18 +130,9 @@ fn test_reveal_token_proof_catches_wrong_key() {
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
-
-    let (deck, shuffle_proof) =
-        shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
+    let (deck, shuffle_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
     let verified = shuffle
-        .verify_shuffle(
-            apk,
-            &Verified::new_unchecked(encrypted),
-            &deck,
-            shuffle_proof,
-            POKER_CTX,
-        )
+        .verify_initial_shuffle(apk, &deck, shuffle_proof, POKER_CTX)
         .unwrap();
 
     let card = verified.get(0).unwrap();
@@ -214,10 +180,10 @@ fn test_multiple_rounds_same_deck() {
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let encrypted = shuffle.encrypt_initial_deck(apk, POKER_CTX);
-
-    let (deck, _) = shuffle.shuffle_encrypted_deck(&mut rng, apk, &encrypted, POKER_CTX);
-    let mut verified_deck = Verified::new_unchecked(deck);
+    let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let mut verified_deck = shuffle
+        .verify_initial_shuffle(apk, &deck, proof, POKER_CTX)
+        .unwrap();
 
     for round in 0..5 {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &verified_deck, POKER_CTX);

@@ -149,41 +149,19 @@ fn main() {
     println!();
 
     println!("--- Deck Preparation ---");
-
-    let start_encrypt = Instant::now();
-    let initial_encrypted = table
-        .shuffle
-        .encrypt_initial_deck(table.aggregate_pk, POKER_CTX);
-    let encrypt_time = start_encrypt.elapsed();
-    println!(
-        "Encrypt unshuffled deck with joint key... ({:.2}s)",
-        encrypt_time.as_secs_f64()
-    );
-
-    let start_verify_enc = Instant::now();
-    let encryption_valid =
-        table
-            .shuffle
-            .verify_initial_encryption(table.aggregate_pk, &initial_encrypted, POKER_CTX);
-    let verify_enc_time = start_verify_enc.elapsed();
-    println!(
-        "✓ Encryption verified ({:.2}s)",
-        verify_enc_time.as_secs_f64()
-    );
-    assert!(encryption_valid, "Initial encryption should be valid");
+    println!("Creating unshuffled deck (52 visible cards)...");
+    println!();
 
     println!("\n--- Shuffle Phase ---");
 
     let start_alice = Instant::now();
-    let (alice_deck, alice_proof) = table.shuffle.shuffle_encrypted_deck(
-        &mut rng,
-        table.aggregate_pk,
-        &initial_encrypted,
-        POKER_CTX,
-    );
+    let (alice_deck, alice_proof) =
+        table
+            .shuffle
+            .shuffle_initial_deck(&mut rng, table.aggregate_pk, POKER_CTX);
     let alice_shuffle_time = start_alice.elapsed();
     println!(
-        "Alice shuffles the encrypted deck... ({:.2}s)",
+        "Alice shuffles and encrypts the deck... ({:.2}s)",
         alice_shuffle_time.as_secs_f64()
     );
 
@@ -192,13 +170,7 @@ fn main() {
     let start_alice_verify = Instant::now();
     let alice_vdeck = table
         .shuffle
-        .verify_shuffle(
-            table.aggregate_pk,
-            &Verified::new_unchecked(initial_encrypted),
-            &alice_deck,
-            alice_proof,
-            POKER_CTX,
-        )
+        .verify_initial_shuffle(table.aggregate_pk, &alice_deck, alice_proof, POKER_CTX)
         .expect("Alice's shuffle should be valid");
     let alice_verify_time = start_alice_verify.elapsed();
     println!(
@@ -248,11 +220,6 @@ fn main() {
     println!(
         "  Total verify time:   {:.2}s",
         total_verify_time.as_secs_f64()
-    );
-    println!("  Encrypt initial:     {:.2}s", encrypt_time.as_secs_f64());
-    println!(
-        "  Verify encryption:   {:.2}s",
-        verify_enc_time.as_secs_f64()
     );
     println!();
 
@@ -343,10 +310,9 @@ fn main() {
     println!("\n=== Game Summary ===");
     println!("Steps:");
     println!("  1. Create unshuffled deck (52 visible cards)");
-    println!("  2. Encrypt with joint key (deterministic, verifiable)");
-    println!("  3. Alice shuffles + re-encrypts");
-    println!("  4. Bob shuffles + re-encrypts");
-    println!("  5. Cards revealed with cooperation");
+    println!("  2. Alice shuffles + encrypts");
+    println!("  3. Bob shuffles + re-encrypts");
+    println!("  4. Cards revealed with cooperation");
     println!("Total shuffles: 2 (Alice then Bob)");
     println!("Zero-knowledge proofs verified: 4");
     println!("Cards revealed: 8 (4 hole + 4 community)");
