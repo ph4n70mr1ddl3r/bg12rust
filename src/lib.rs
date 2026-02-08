@@ -215,7 +215,7 @@ pub struct SecretKey(Scalar);
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
 ///
-/// let (_, pk, proof) = shuffle.keygen(&mut rng, ctx);
+/// let (_, pk, proof) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 ///
 /// // This creates a Verified<PublicKey>
 /// let verified_pk = proof.verify(pk, ctx).unwrap();
@@ -291,7 +291,7 @@ impl OwnershipProof {
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
     ///
-    /// let (_, pk, proof) = shuffle.keygen(&mut rng, ctx);
+    /// let (_, pk, proof) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     ///
     /// // Verify the ownership proof
     /// match proof.verify(pk, ctx) {
@@ -322,10 +322,9 @@ impl OwnershipProof {
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
 ///
-/// let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+/// let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// let vpk1 = proof1.verify(pk1, ctx).unwrap();
-///
-/// let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+/// let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// let vpk2 = proof2.verify(pk2, ctx).unwrap();
 ///
 /// // Create aggregate key from verified keys
@@ -351,9 +350,9 @@ impl AggregatePublicKey {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     ///
     /// let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -474,12 +473,12 @@ pub struct RevealToken(CurveAffine);
 /// # let mut rng = ark_std::test_rng();
 /// # let shuffle = Shuffle::<10>::default();
 /// # let ctx = b"game";
-/// # let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+/// # let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-/// # let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+/// # let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
 /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
-/// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+/// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
 /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
 /// # let card = vdeck.get(0).unwrap();
 /// # let (rt1, rt_proof1) = card.reveal_token(&mut rng, &sk1, pk1, ctx);
@@ -541,10 +540,10 @@ impl MaskedCard {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (sk, pk, proof) = shuffle.keygen(&mut rng, ctx);
+    /// # let (sk, pk, proof) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk = proof.verify(pk, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk]);
-    /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, shuf_proof, ctx).unwrap();
     ///
     /// let card = vdeck.get(0).unwrap();
@@ -593,10 +592,10 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk, proof) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk, proof) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk = proof.verify(pk, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk]);
-    /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, shuf_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, shuf_proof, ctx).unwrap();
     ///
     /// // Access cards from the verified deck
@@ -1250,18 +1249,18 @@ fn shuffle_remask_prove<const N: usize, R: Rng>(
 /// let ctx = b"my_poker_game";
 ///
 /// // Player 1 generates keys
-/// let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+/// let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// let vpk1 = proof1.verify(pk1, ctx).unwrap();
 ///
 /// // Player 2 generates keys
-/// let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+/// let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
 /// let vpk2 = proof2.verify(pk2, ctx).unwrap();
 ///
 /// // Create aggregate public key
 /// let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 ///
 /// // Player 1 shuffles the initial deck
-/// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+/// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
 /// let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
 /// ```
 #[derive(Debug, Clone, Copy)]
@@ -1284,6 +1283,14 @@ impl<const N: usize> Shuffle<N> {
     #[track_caller]
     fn check_deck_size() {
         assert!(N > 1, "Deck size must be greater than 1, got {N}");
+    }
+
+    #[inline]
+    fn validate_context(ctx: &[u8]) -> ShuffleResult<()> {
+        if ctx.is_empty() {
+            return Err(ShuffleError::InvalidContext);
+        }
+        Ok(())
     }
 
     #[must_use]
@@ -1327,7 +1334,7 @@ impl<const N: usize> Shuffle<N> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk, proof) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk, proof) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk = proof.verify(pk, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk]);
     ///
@@ -1378,6 +1385,10 @@ impl<const N: usize> Shuffle<N> {
     /// A tuple of `(SecretKey, PublicKey, OwnershipProof)` where the proof can be
     /// verified by other players to obtain a `Verified<PublicKey>`.
     ///
+    /// # Errors
+    ///
+    /// Returns `ShuffleError::InvalidContext` if the context string is empty.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1387,22 +1398,22 @@ impl<const N: usize> Shuffle<N> {
     /// let shuffle = Shuffle::<52>::default();
     /// let ctx = b"game_session_123";
     ///
-    /// let (secret_key, public_key, ownership_proof) = shuffle.keygen(&mut rng, ctx);
+    /// let (secret_key, public_key, ownership_proof) = shuffle.keygen(&mut rng, ctx).unwrap();
     ///
     /// // Verify the ownership proof
     /// let verified_pk = ownership_proof.verify(public_key, ctx).unwrap();
     /// ```
-    #[must_use]
     pub fn keygen<R: Rng>(
         &self,
         rng: &mut R,
         ctx: &[u8],
-    ) -> (SecretKey, PublicKey, OwnershipProof) {
+    ) -> ShuffleResult<(SecretKey, PublicKey, OwnershipProof)> {
+        Self::validate_context(ctx)?;
         let sk = Scalar::rand(rng);
         let pk = GENERATOR * sk;
         let (sk, pk) = (SecretKey(sk), PublicKey(pk.into_affine()));
         let proof = OwnershipProof::new(rng, &sk, pk, ctx);
-        (sk, pk, proof)
+        Ok((sk, pk, proof))
     }
 
     /// Performs the first shuffle of the deck with a zero-knowledge proof.
@@ -1422,6 +1433,10 @@ impl<const N: usize> Shuffle<N> {
     /// A tuple of `(MaskedDeck, ShuffleProof)` that must be verified by all players
     /// using [`verify_initial_shuffle`](Self::verify_initial_shuffle).
     ///
+    /// # Errors
+    ///
+    /// Returns `ShuffleError::InvalidContext` if the context string is empty.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1432,28 +1447,34 @@ impl<const N: usize> Shuffle<N> {
     /// let ctx = b"game_session";
     ///
     /// // Two players generate keys
-    /// let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// let vpk1 = proof1.verify(pk1, ctx).unwrap();
     ///
-    /// let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// let vpk2 = proof2.verify(pk2, ctx).unwrap();
     ///
     /// let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
     ///
     /// // First player shuffles
-    /// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     ///
     /// // All players verify
     /// let verified_deck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     /// ```
-    #[must_use]
     pub fn shuffle_initial_deck<R: Rng>(
         &self,
         rng: &mut R,
         apk: AggregatePublicKey,
         ctx: &[u8],
-    ) -> (MaskedDeck<N>, ShuffleProof<N>) {
-        shuffle_remask_prove(rng, &self.commit_key, apk, &self.initial_deck(), ctx)
+    ) -> ShuffleResult<(MaskedDeck<N>, ShuffleProof<N>)> {
+        Self::validate_context(ctx)?;
+        Ok(shuffle_remask_prove(
+            rng,
+            &self.commit_key,
+            apk,
+            &self.initial_deck(),
+            ctx,
+        ))
     }
 
     /// Shuffles an already-shuffled deck with a zero-knowledge proof.
@@ -1474,6 +1495,10 @@ impl<const N: usize> Shuffle<N> {
     /// A tuple of `(MaskedDeck, ShuffleProof)` that must be verified by all players
     /// using [`verify_shuffle`](Self::verify_shuffle).
     ///
+    /// # Errors
+    ///
+    /// Returns `ShuffleError::InvalidContext` if the context string is empty.
+    ///
     /// # Examples
     ///
     /// ```
@@ -1481,27 +1506,33 @@ impl<const N: usize> Shuffle<N> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
-    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     ///
     /// // Player 2 shuffles the already-shuffled deck
-    /// let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx);
+    /// let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx).expect("shuffle should succeed");
     /// let vdeck2 = shuffle.verify_shuffle(apk, &vdeck, &deck2, proof2, ctx).unwrap();
     /// ```
-    #[must_use]
     pub fn shuffle_deck<R: Rng>(
         &self,
         rng: &mut R,
         apk: AggregatePublicKey,
         prev: &Verified<MaskedDeck<N>>,
         ctx: &[u8],
-    ) -> (MaskedDeck<N>, ShuffleProof<N>) {
-        shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0 .0, ctx)
+    ) -> ShuffleResult<(MaskedDeck<N>, ShuffleProof<N>)> {
+        Self::validate_context(ctx)?;
+        Ok(shuffle_remask_prove(
+            rng,
+            &self.commit_key,
+            apk,
+            &prev.0 .0,
+            ctx,
+        ))
     }
 
     /// Shuffles an encrypted deck directly without verification of the previous deck.
@@ -1554,12 +1585,12 @@ impl<const N: usize> Shuffle<N> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
-    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     ///
     /// // Verify returns None if proof is invalid
     /// match shuffle.verify_initial_shuffle(apk, &deck, proof, ctx) {
@@ -1602,14 +1633,14 @@ impl<const N: usize> Shuffle<N> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// # let (_, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
-    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
-    /// # let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx);
+    /// # let (deck2, proof2) = shuffle.shuffle_deck(&mut rng, apk, &vdeck, ctx).expect("shuffle should succeed");
     ///
     /// // Verify the second shuffle
     /// match shuffle.verify_shuffle(apk, &vdeck, &deck2, proof2, ctx) {
@@ -1652,12 +1683,12 @@ impl<const N: usize> Shuffle<N> {
     /// # let mut rng = ark_std::test_rng();
     /// # let shuffle = Shuffle::<10>::default();
     /// # let ctx = b"game";
-    /// # let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx);
+    /// # let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk1 = proof1.verify(pk1, ctx).unwrap();
-    /// # let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx);
+    /// # let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, ctx).expect("keygen should succeed");
     /// # let vpk2 = proof2.verify(pk2, ctx).unwrap();
     /// # let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
-    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx);
+    /// # let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, ctx).expect("shuffle should succeed");
     /// # let vdeck = shuffle.verify_initial_shuffle(apk, &deck, proof, ctx).unwrap();
     ///
     /// let card = vdeck.get(0).unwrap();
@@ -1850,7 +1881,9 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk, proof) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
 
         let verified_pk = proof.verify(pk, TEST_CTX).expect("proof should be valid");
         assert_eq!(verified_pk.0, pk);
@@ -1867,10 +1900,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -1894,10 +1931,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -1912,10 +1953,14 @@ mod tests {
     fn test_initial_encryption_deterministic() {
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng(), TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng(), TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -1933,15 +1978,21 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
+        let (shuffled, proof) = shuffle
+            .shuffle_initial_deck(&mut rng, apk, TEST_CTX)
+            .expect("shuffle should succeed");
 
         let verified = shuffle.verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX);
         assert!(verified.is_some(), "shuffle should be verifiable");
@@ -1952,15 +2003,21 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let (shuffled1, proof1) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
+        let (shuffled1, proof1) = shuffle
+            .shuffle_initial_deck(&mut rng, apk, TEST_CTX)
+            .expect("shuffle should succeed");
         let verified1 = shuffle
             .verify_initial_shuffle(apk, &shuffled1, proof1, TEST_CTX)
             .unwrap();
@@ -1983,10 +2040,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -2016,15 +2077,21 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (sk1, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (sk2, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
+        let (shuffled, proof) = shuffle
+            .shuffle_initial_deck(&mut rng, apk, TEST_CTX)
+            .expect("shuffle should succeed");
         let verified = shuffle
             .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
@@ -2055,15 +2122,21 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (sk1, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
+        let (shuffled, proof) = shuffle
+            .shuffle_initial_deck(&mut rng, apk, TEST_CTX)
+            .expect("shuffle should succeed");
         let verified = shuffle
             .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
@@ -2080,10 +2153,14 @@ mod tests {
     fn test_different_contexts_produce_different_encryptions() {
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng(), TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng(), TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng(), TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -2106,15 +2183,21 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (sk1, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (sk2, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-        let (shuffled, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, TEST_CTX);
+        let (shuffled, proof) = shuffle
+            .shuffle_initial_deck(&mut rng, apk, TEST_CTX)
+            .expect("shuffle should succeed");
         let verified = shuffle
             .verify_initial_shuffle(apk, &shuffled, proof, TEST_CTX)
             .unwrap();
@@ -2153,10 +2236,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<5>::default();
 
-        let (_, pk1, proof1) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk1, proof1) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk1 = proof1.verify(pk1, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let vpk2 = proof2.verify(pk2, TEST_CTX).unwrap();
 
         let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
@@ -2182,10 +2269,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk, proof) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let _verified = proof.verify(pk, TEST_CTX).unwrap();
 
-        let (_, pk2, proof2) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, proof2) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
 
         let wrong_context = b"wrong_game";
         assert!(proof2.verify(pk2, wrong_context).is_none());
@@ -2196,10 +2287,14 @@ mod tests {
         let mut rng = test_rng();
         let shuffle = Shuffle::<52>::default();
 
-        let (_, pk, proof) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk, proof) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
         let verified_pk: Verified<PublicKey> = proof.verify(pk, TEST_CTX).expect("should be valid");
 
-        let (_, pk2, _) = shuffle.keygen(&mut rng, TEST_CTX);
+        let (_, pk2, _) = shuffle
+            .keygen(&mut rng, TEST_CTX)
+            .expect("keygen should succeed");
 
         assert_ne!(verified_pk.0, pk2, "verified key should match original");
     }

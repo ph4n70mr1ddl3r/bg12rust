@@ -12,20 +12,28 @@ fn test_full_poker_workflow() {
     let mut rng = rand::thread_rng();
     let shuffle = TestDeck::default();
 
-    let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (sk1, pk1, proof1) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk1 = proof1.verify(pk1, POKER_CTX).expect("player 1 proof valid");
 
-    let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (sk2, pk2, proof2) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk2 = proof2.verify(pk2, POKER_CTX).expect("player 2 proof valid");
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let (alice_deck, alice_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (alice_deck, alice_proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
     let alice_vdeck = shuffle
         .verify_initial_shuffle(apk, &alice_deck, alice_proof, POKER_CTX)
         .expect("Alice's shuffle should be valid");
 
-    let (bob_deck, bob_proof) = shuffle.shuffle_deck(&mut rng, apk, &alice_vdeck, POKER_CTX);
+    let (bob_deck, bob_proof) = shuffle
+        .shuffle_deck(&mut rng, apk, &alice_vdeck, POKER_CTX)
+        .expect("shuffle should succeed");
     let final_deck = shuffle
         .verify_shuffle(apk, &alice_vdeck, &bob_deck, bob_proof, POKER_CTX)
         .expect("Bob's shuffle should be valid");
@@ -57,7 +65,9 @@ fn test_three_player_workflow() {
 
     let players: Vec<(SecretKey, PublicKey, Verified<PublicKey>)> = (0..3)
         .map(|_| {
-            let (sk, pk, proof) = shuffle.keygen(&mut rng, POKER_CTX);
+            let (sk, pk, proof) = shuffle
+                .keygen(&mut rng, POKER_CTX)
+                .expect("keygen should succeed");
             let vpk = proof.verify(pk, POKER_CTX).expect("valid proof");
             (sk, pk, vpk)
         })
@@ -65,12 +75,16 @@ fn test_three_player_workflow() {
 
     let apk = AggregatePublicKey::new(&players.iter().map(|(_, _, vpk)| *vpk).collect::<Vec<_>>());
 
-    let (initial_deck, initial_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (initial_deck, initial_proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
     let mut current_deck = shuffle
         .verify_initial_shuffle(apk, &initial_deck, initial_proof, POKER_CTX)
         .unwrap();
     for i in 0..3 {
-        let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX);
+        let (new_deck, proof) = shuffle
+            .shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX)
+            .expect("shuffle should succeed");
         current_deck = shuffle
             .verify_shuffle(apk, &current_deck, &new_deck, proof, POKER_CTX)
             .unwrap_or_else(|| panic!("shuffle {} should verify", i + 1));
@@ -85,7 +99,12 @@ fn test_three_player_workflow() {
     let verified_tokens: Vec<Verified<RevealToken>> = tokens_and_proofs
         .iter()
         .zip(players.iter())
-        .map(|((token, proof), (_, _, vpk))| proof.verify(*vpk, *token, card, POKER_CTX).unwrap())
+        .map(
+            |((token, proof), (_, _, vpk)): (
+                &(RevealToken, RevealTokenProof),
+                &(SecretKey, PublicKey, Verified<PublicKey>),
+            )| { proof.verify(*vpk, *token, card, POKER_CTX).unwrap() },
+        )
         .collect();
 
     let art = AggregateRevealToken::new(&verified_tokens);
@@ -98,20 +117,28 @@ fn test_shuffle_proof_catches_tampering() {
     let mut rng = rand::thread_rng();
     let shuffle = TestDeck::default();
 
-    let (_, pk1, proof1) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (_, pk1, proof1) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk1 = proof1.verify(pk1, POKER_CTX).unwrap();
 
-    let (_, pk2, proof2) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (_, pk2, proof2) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk2 = proof2.verify(pk2, POKER_CTX).unwrap();
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let (initial_deck, initial_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (initial_deck, initial_proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
 
     let result = shuffle.verify_initial_shuffle(apk, &initial_deck, initial_proof, POKER_CTX);
     assert!(result.is_some(), "valid shuffle should pass");
 
-    let (tampered_deck, _tampered_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (tampered_deck, _tampered_proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
 
     let result2 = shuffle.verify_initial_shuffle(apk, &tampered_deck, initial_proof, POKER_CTX);
     assert!(result2.is_none(), "wrong proof should fail verification");
@@ -122,15 +149,21 @@ fn test_reveal_token_proof_catches_wrong_key() {
     let mut rng = rand::thread_rng();
     let shuffle = TestDeck::default();
 
-    let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (sk1, pk1, proof1) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk1 = proof1.verify(pk1, POKER_CTX).unwrap();
 
-    let (_, pk2, proof2) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (_, pk2, proof2) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk2 = proof2.verify(pk2, POKER_CTX).unwrap();
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let (deck, shuffle_proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (deck, shuffle_proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
     let verified = shuffle
         .verify_initial_shuffle(apk, &deck, shuffle_proof, POKER_CTX)
         .unwrap();
@@ -172,21 +205,29 @@ fn test_multiple_rounds_same_deck() {
     let mut rng = rand::thread_rng();
     let shuffle = TestDeck::default();
 
-    let (sk1, pk1, proof1) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (sk1, pk1, proof1) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk1 = proof1.verify(pk1, POKER_CTX).unwrap();
 
-    let (sk2, pk2, proof2) = shuffle.keygen(&mut rng, POKER_CTX);
+    let (sk2, pk2, proof2) = shuffle
+        .keygen(&mut rng, POKER_CTX)
+        .expect("keygen should succeed");
     let vpk2 = proof2.verify(pk2, POKER_CTX).unwrap();
 
     let apk = AggregatePublicKey::new(&[vpk1, vpk2]);
 
-    let (deck, proof) = shuffle.shuffle_initial_deck(&mut rng, apk, POKER_CTX);
+    let (deck, proof) = shuffle
+        .shuffle_initial_deck(&mut rng, apk, POKER_CTX)
+        .expect("shuffle should succeed");
     let mut verified_deck = shuffle
         .verify_initial_shuffle(apk, &deck, proof, POKER_CTX)
         .unwrap();
 
     for round in 0..5 {
-        let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &verified_deck, POKER_CTX);
+        let (new_deck, proof) = shuffle
+            .shuffle_deck(&mut rng, apk, &verified_deck, POKER_CTX)
+            .expect("shuffle should succeed");
         let verified = shuffle.verify_shuffle(apk, &verified_deck, &new_deck, proof, POKER_CTX);
 
         assert!(

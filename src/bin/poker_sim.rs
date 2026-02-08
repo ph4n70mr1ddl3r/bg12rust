@@ -30,7 +30,9 @@ impl PokerTable {
         let players: Vec<Player> = player_names
             .iter()
             .map(|name| {
-                let (sk, pk, proof) = shuffle.keygen(&mut rng, POKER_CTX);
+                let (sk, pk, proof) = shuffle
+                    .keygen(&mut rng, POKER_CTX)
+                    .expect("keygen should succeed");
                 let vpk = proof
                     .verify(pk, POKER_CTX)
                     .expect("ownership proof should be valid");
@@ -155,10 +157,10 @@ fn main() {
     println!("\n--- Shuffle Phase ---");
 
     let start_alice = Instant::now();
-    let (alice_deck, alice_proof) =
-        table
-            .shuffle
-            .shuffle_initial_deck(&mut rng, table.aggregate_pk, POKER_CTX);
+    let (alice_deck, alice_proof) = table
+        .shuffle
+        .shuffle_initial_deck(&mut rng, table.aggregate_pk, POKER_CTX)
+        .expect("shuffle should succeed");
     let alice_shuffle_time = start_alice.elapsed();
     println!(
         "Alice shuffles and encrypts the deck... ({:.2}s)",
@@ -179,10 +181,10 @@ fn main() {
     );
 
     let start_bob = Instant::now();
-    let (bob_deck, bob_proof) =
-        table
-            .shuffle
-            .shuffle_deck(&mut rng, table.aggregate_pk, &alice_vdeck, POKER_CTX);
+    let (bob_deck, bob_proof) = table
+        .shuffle
+        .shuffle_deck(&mut rng, table.aggregate_pk, &alice_vdeck, POKER_CTX)
+        .expect("shuffle should succeed");
     let bob_shuffle_time = start_bob.elapsed();
     println!(
         "Bob shuffles Alice's verified deck... ({:.2}s)",
