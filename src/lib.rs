@@ -62,7 +62,7 @@ impl core::fmt::Display for ShuffleError {
             ShuffleError::InvalidDeckSize { size } => {
                 write!(f, "invalid deck size {size}, must be greater than 1")
             }
-            ShuffleError::InvalidContext => write!(f, "context string is empty or invalid"),
+            ShuffleError::InvalidContext => write!(f, "context string is empty or too short"),
             ShuffleError::InsufficientRevealTokens { required, provided } => {
                 write!(
                     f,
@@ -605,6 +605,7 @@ impl<const N: usize> Verified<MaskedDeck<N>> {
     /// // Out of bounds returns None
     /// assert!(vdeck.get(10).is_none());
     /// ```
+    #[must_use]
     #[inline]
     pub fn get(&self, idx: usize) -> Option<MaskedCard> {
         self.0 .0.get(idx).copied().map(MaskedCard)
@@ -1279,6 +1280,7 @@ impl<const N: usize> Default for Shuffle<N> {
 }
 
 impl<const N: usize> Shuffle<N> {
+    #[track_caller]
     fn check_deck_size() {
         assert!(N > 1, "Deck size must be greater than 1, got {N}");
     }
@@ -2266,7 +2268,7 @@ mod tests {
         );
         assert_eq!(
             ShuffleError::InvalidContext.to_string(),
-            "context string is empty or invalid"
+            "context string is empty or too short"
         );
         assert_eq!(
             ShuffleError::InsufficientRevealTokens {
