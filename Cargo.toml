@@ -2,6 +2,11 @@
 name = "bg12rust"
 version = "0.1.0"
 edition = "2021"
+description = "Bayer-Groth 2012 mental poker library implementing zero-knowledge shuffle proofs in Rust"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/anomalyco/bg12rust"
+keywords = ["cryptography", "zero-knowledge", "mental-poker", "shuffle-proof"]
+categories = ["cryptography"]
 
 [[bin]]
 name = "poker_sim"

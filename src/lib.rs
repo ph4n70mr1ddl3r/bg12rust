@@ -1285,7 +1285,7 @@ impl<const N: usize> Default for Shuffle<N> {
 impl<const N: usize> Shuffle<N> {
     #[track_caller]
     fn check_deck_size() {
-        assert!(N > 1, "Deck size must be greater than 1, got {N}");
+        assert!(N > 1, "Deck size must be greater than 1, got {N}", N = N);
     }
 
     #[must_use]
