@@ -7,6 +7,8 @@ use std::time::Instant;
 
 type Deck = Shuffle<52>;
 
+const POKER_CTX: &[u8] = b"texas_hold'em";
+
 struct Player {
     name: String,
     secret_key: SecretKey,
@@ -24,13 +26,14 @@ impl PokerTable {
     fn new(player_names: &[&str]) -> Self {
         let shuffle = Deck::default();
         let mut rng = rand::thread_rng();
-        let ctx = b"texas_hold'em";
 
         let players: Vec<Player> = player_names
             .iter()
             .map(|name| {
-                let (sk, pk, proof) = shuffle.keygen(&mut rng, ctx);
-                let vpk = proof.verify(pk, ctx).unwrap();
+                let (sk, pk, proof) = shuffle.keygen(&mut rng, POKER_CTX);
+                let vpk = proof
+                    .verify(pk, POKER_CTX)
+                    .expect("ownership proof should be valid");
                 Player {
                     name: name.to_string(),
                     secret_key: sk,
@@ -59,7 +62,11 @@ impl PokerTable {
         if end_idx > 52 {
             return None;
         }
-        Some((0..4).map(|i| deck.get(start_idx + i).unwrap()).collect())
+        Some(
+            (0..4)
+                .map(|i| deck.get(start_idx + i).expect("card should be in deck"))
+                .collect(),
+        )
     }
 
     fn deal_community_cards(
@@ -74,7 +81,7 @@ impl PokerTable {
         }
         Some(
             (0..count)
-                .map(|i| deck.get(start_idx + i).unwrap())
+                .map(|i| deck.get(start_idx + i).expect("card should be in deck"))
                 .collect(),
         )
     }
@@ -84,11 +91,10 @@ fn create_reveal_tokens(
     rng: &mut impl RngCore,
     card: MaskedCard,
     players: &[Player],
-    ctx: &[u8],
 ) -> Vec<(RevealToken, RevealTokenProof)> {
     players
         .iter()
-        .map(|p| card.reveal_token(rng, &p.secret_key, p.public_key, ctx))
+        .map(|p| card.reveal_token(rng, &p.secret_key, p.public_key, POKER_CTX))
         .collect()
 }
 
@@ -96,14 +102,15 @@ fn verify_and_aggregate_tokens(
     card: MaskedCard,
     tokens_and_proofs: &[(RevealToken, RevealTokenProof)],
     players: &[Player],
-    ctx: &[u8],
 ) -> AggregateRevealToken {
     let verified_tokens: Vec<Verified<RevealToken>> = tokens_and_proofs
         .iter()
         .zip(players.iter())
         .map(|(token_proof, player)| {
             let (token, proof) = token_proof;
-            proof.verify(player.verified_pk, *token, card, ctx).unwrap()
+            proof
+                .verify(player.verified_pk, *token, card, POKER_CTX)
+                .expect("reveal token proof should be valid")
         })
         .collect();
 
@@ -111,7 +118,9 @@ fn verify_and_aggregate_tokens(
 }
 
 fn card_to_string(shuffle: &Deck, art: AggregateRevealToken, card: MaskedCard) -> String {
-    let idx = shuffle.reveal_card(art, card).unwrap();
+    let idx = shuffle
+        .reveal_card(art, card)
+        .expect("reveal should succeed with valid tokens");
 
     let suits = ["♣", "♦", "♥", "♠"];
     let ranks = [
@@ -125,7 +134,6 @@ fn main() {
     println!("=== Two-Player Texas Hold'em Simulation ===\n");
 
     let mut rng = rand::thread_rng();
-    let ctx = b"texas_hold'em";
 
     let table = PokerTable::new(&["Alice", "Bob"]);
     println!(
@@ -137,13 +145,15 @@ fn main() {
             .collect::<Vec<_>>()
             .join(", ")
     );
-    println!("Context: {}", String::from_utf8_lossy(ctx));
+    println!("Context: {}", String::from_utf8_lossy(POKER_CTX));
     println!();
 
     println!("--- Deck Preparation ---");
 
     let start_encrypt = Instant::now();
-    let initial_encrypted = table.shuffle.encrypt_initial_deck(table.aggregate_pk, ctx);
+    let initial_encrypted = table
+        .shuffle
+        .encrypt_initial_deck(table.aggregate_pk, POKER_CTX);
     let encrypt_time = start_encrypt.elapsed();
     println!(
         "Encrypt unshuffled deck with joint key... ({:.2}s)",
@@ -154,7 +164,7 @@ fn main() {
     let encryption_valid =
         table
             .shuffle
-            .verify_initial_encryption(table.aggregate_pk, &initial_encrypted, ctx);
+            .verify_initial_encryption(table.aggregate_pk, &initial_encrypted, POKER_CTX);
     let verify_enc_time = start_verify_enc.elapsed();
     println!(
         "✓ Encryption verified ({:.2}s)",
@@ -165,10 +175,12 @@ fn main() {
     println!("\n--- Shuffle Phase ---");
 
     let start_alice = Instant::now();
-    let (alice_deck, alice_proof) =
-        table
-            .shuffle
-            .shuffle_encrypted_deck(&mut rng, table.aggregate_pk, &initial_encrypted, ctx);
+    let (alice_deck, alice_proof) = table.shuffle.shuffle_encrypted_deck(
+        &mut rng,
+        table.aggregate_pk,
+        &initial_encrypted,
+        POKER_CTX,
+    );
     let alice_shuffle_time = start_alice.elapsed();
     println!(
         "Alice shuffles the encrypted deck... ({:.2}s)",
@@ -185,7 +197,7 @@ fn main() {
             &Verified::new_unchecked(initial_encrypted),
             &alice_deck,
             alice_proof,
-            ctx,
+            POKER_CTX,
         )
         .expect("Alice's shuffle should be valid");
     let alice_verify_time = start_alice_verify.elapsed();
@@ -198,7 +210,7 @@ fn main() {
     let (bob_deck, bob_proof) =
         table
             .shuffle
-            .shuffle_deck(&mut rng, table.aggregate_pk, &alice_vdeck, ctx);
+            .shuffle_deck(&mut rng, table.aggregate_pk, &alice_vdeck, POKER_CTX);
     let bob_shuffle_time = start_bob.elapsed();
     println!(
         "Bob shuffles Alice's verified deck... ({:.2}s)",
@@ -208,7 +220,13 @@ fn main() {
     let start_bob_verify = Instant::now();
     let final_deck = table
         .shuffle
-        .verify_shuffle(table.aggregate_pk, &alice_vdeck, &bob_deck, bob_proof, ctx)
+        .verify_shuffle(
+            table.aggregate_pk,
+            &alice_vdeck,
+            &bob_deck,
+            bob_proof,
+            POKER_CTX,
+        )
         .expect("Bob's shuffle should be valid");
     let bob_verify_time = start_bob_verify.elapsed();
     println!(
@@ -255,8 +273,8 @@ fn main() {
     let start_reveal = Instant::now();
     println!("\nAlice's hole cards:");
     for (i, card) in alice_hole.iter().enumerate() {
-        let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
-        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players, ctx);
+        let tokens = create_reveal_tokens(&mut rng, *card, &table.players);
+        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players);
         let card_str = card_to_string(&table.shuffle, art, *card);
         println!(
             "  Card {}: {} (both players cooperated to reveal)",
@@ -267,8 +285,8 @@ fn main() {
 
     println!("\nBob's hole cards:");
     for (i, card) in bob_hole.iter().enumerate() {
-        let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
-        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players, ctx);
+        let tokens = create_reveal_tokens(&mut rng, *card, &table.players);
+        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players);
         let card_str = card_to_string(&table.shuffle, art, *card);
         println!(
             "  Card {}: {} (both players cooperated to reveal)",
@@ -300,24 +318,24 @@ fn main() {
 
     println!("\nFlop:");
     for (i, card) in flop.iter().enumerate() {
-        let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
-        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players, ctx);
+        let tokens = create_reveal_tokens(&mut rng, *card, &table.players);
+        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players);
         let card_str = card_to_string(&table.shuffle, art, *card);
         println!("  Card {}: {}", i + 1, card_str);
     }
 
     println!("\nTurn:");
     for card in turn.iter() {
-        let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
-        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players, ctx);
+        let tokens = create_reveal_tokens(&mut rng, *card, &table.players);
+        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players);
         let card_str = card_to_string(&table.shuffle, art, *card);
         println!("  Card: {}", card_str);
     }
 
     println!("\nRiver:");
     for card in river.iter() {
-        let tokens = create_reveal_tokens(&mut rng, *card, &table.players, ctx);
-        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players, ctx);
+        let tokens = create_reveal_tokens(&mut rng, *card, &table.players);
+        let art = verify_and_aggregate_tokens(*card, &tokens, &table.players);
         let card_str = card_to_string(&table.shuffle, art, *card);
         println!("  Card: {}", card_str);
     }
