@@ -503,10 +503,10 @@ impl AggregateRevealToken {
     ///
     /// # Arguments
     ///
-    /// * `pks` - Slice of verified reveal tokens from all players
+    /// * `tokens` - Slice of verified reveal tokens from all players
     #[must_use]
-    pub fn new(pks: &[Verified<RevealToken>]) -> Self {
-        let art: CurveProj = pks.iter().map(|t| t.0 .0.into_group()).sum();
+    pub fn new(tokens: &[Verified<RevealToken>]) -> Self {
+        let art: CurveProj = tokens.iter().map(|t| t.0 .0.into_group()).sum();
         Self(art.into_affine())
     }
 }
