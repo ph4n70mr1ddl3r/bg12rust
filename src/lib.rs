@@ -1283,7 +1283,7 @@ impl<const N: usize> Default for Shuffle<N> {
 impl<const N: usize> Shuffle<N> {
     #[track_caller]
     fn check_deck_size() {
-        assert!(N > 1, "Deck size must be greater than 1, got {N}", N = N);
+        assert!(N > 1, "Deck size must be greater than 1, got {N}");
     }
 
     #[must_use]
@@ -1504,6 +1504,22 @@ impl<const N: usize> Shuffle<N> {
         shuffle_remask_prove(rng, &self.commit_key, apk, &prev.0 .0, ctx)
     }
 
+    /// Shuffles an encrypted deck directly without verification of the previous deck.
+    ///
+    /// This is a convenience method that bypasses the need to have a `Verified<MaskedDeck>`.
+    /// The caller is responsible for ensuring the previous deck was legitimately produced.
+    /// Most users should prefer [`shuffle_deck`](Self::shuffle_deck) which requires a verified deck.
+    ///
+    /// # Arguments
+    ///
+    /// * `rng` - Cryptographically secure random number generator
+    /// * `apk` - Aggregate public key from all players
+    /// * `prev` - The deck to shuffle (without verification wrapper)
+    /// * `ctx` - Context string to bind the proof
+    ///
+    /// # Returns
+    ///
+    /// A tuple of `(MaskedDeck, ShuffleProof)` that must be verified by all players.
     #[must_use]
     pub fn shuffle_encrypted_deck<R: Rng>(
         &self,
