@@ -2087,9 +2087,7 @@ mod tests {
         let encrypted1 = shuffle.encrypt_initial_deck(apk, ctx1);
         let encrypted2 = shuffle.encrypt_initial_deck(apk, ctx2);
 
-        let all_different: bool = (0..52)
-            .map(|i| encrypted1.0[i] != encrypted2.0[i])
-            .any(|b| b);
+        let all_different: bool = (0..52).any(|i| encrypted1.0[i] != encrypted2.0[i]);
         assert!(
             all_different,
             "different contexts should produce different encryptions"

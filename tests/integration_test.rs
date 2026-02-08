@@ -83,7 +83,7 @@ fn test_three_player_workflow() {
         let (new_deck, proof) = shuffle.shuffle_deck(&mut rng, apk, &current_deck, POKER_CTX);
         current_deck = shuffle
             .verify_shuffle(apk, &current_deck, &new_deck, proof, POKER_CTX)
-            .expect(&format!("shuffle {} should verify", i + 1));
+            .unwrap_or_else(|| panic!("shuffle {} should verify", i + 1));
     }
 
     let card = current_deck.get(0).unwrap();
