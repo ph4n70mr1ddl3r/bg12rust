@@ -261,9 +261,7 @@ impl OwnershipProof {
     }
 
     fn new<R: Rng>(rng: &mut R, sk: &SecretKey, pk: PublicKey, ctx: &[u8]) -> Self {
-        if ctx.is_empty() {
-            panic!("context cannot be empty");
-        }
+        assert!(!ctx.is_empty(), "context cannot be empty");
         let w = Scalar::rand(rng);
         let a = (GENERATOR * w).into_affine();
         let e = Self::challenge(&pk, &a, ctx);
